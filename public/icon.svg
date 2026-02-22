@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#FFA000"/>
+
+  <!-- Cowboy hat crown -->
+  <path d="M145 300 C145 300 155 195 205 185 C230 180 225 215 256 215 C287 215 282 180 307 185 C357 195 367 300 367 300" fill="#000"/>
+
+  <!-- Hat brim -->
+  <ellipse cx="256" cy="300" rx="185" ry="45" fill="#000"/>
+
+  <!-- Hat band -->
+  <rect x="160" y="278" width="192" height="16" rx="3" fill="#FFA000"/>
+</svg>
