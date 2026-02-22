@@ -5,8 +5,8 @@ const steps = [
     step: "1",
     title: "Pick Your Wash",
     desc: "Choose your car size and throw on any add-ons you want.",
-    image: "/step-pick.png",
-    alt: "Cowboy sponge and spray bottle riding bikes",
+    image: "/step-wash.png",
+    alt: "Cowboy sponge and spray bottle leaning on a truck",
   },
   {
     step: "2",
@@ -19,8 +19,8 @@ const steps = [
     step: "3",
     title: "We Come to You",
     desc: "We roll up, scrub it down, and leave your car looking fresh.",
-    image: "/step-wash.png",
-    alt: "Cowboy sponge and spray bottle leaning on a truck",
+    image: "/step-pick.png",
+    alt: "Cowboy sponge and spray bottle riding bikes",
   },
 ];
 
