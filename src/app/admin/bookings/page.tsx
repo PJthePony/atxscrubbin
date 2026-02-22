@@ -13,6 +13,7 @@ interface BookingRow {
   subtotal: number;
   total: number;
   status: string;
+  stripe_payment_intent_id: string | null;
   created_at: string;
   customer: {
     full_name: string;
@@ -76,6 +77,21 @@ export default function BookingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     });
+    loadBookings();
+  };
+
+  const refundBooking = async (id: string) => {
+    if (!confirm("Issue a full refund for this booking?")) return;
+    const res = await fetch("/api/admin/bookings/refund", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ booking_id: id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Refund failed");
+      return;
+    }
     loadBookings();
   };
 
@@ -297,14 +313,34 @@ export default function BookingsPage() {
                         </button>
                       )}
                       {booking.status === "completed" && (
-                        <span className="text-sm text-green-400">
-                          Done!
-                        </span>
+                        <>
+                          <span className="text-sm text-green-400">
+                            Done!
+                          </span>
+                          {booking.stripe_payment_intent_id && (
+                            <button
+                              onClick={() => refundBooking(booking.id)}
+                              className="rounded-lg bg-red-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-600 transition"
+                            >
+                              Refund
+                            </button>
+                          )}
+                        </>
                       )}
                       {booking.status === "cancelled" && (
-                        <span className="text-sm text-zinc-500">
-                          Cancelled
-                        </span>
+                        <>
+                          <span className="text-sm text-zinc-500">
+                            Cancelled
+                          </span>
+                          {booking.stripe_payment_intent_id && (
+                            <button
+                              onClick={() => refundBooking(booking.id)}
+                              className="rounded-lg bg-red-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-600 transition"
+                            >
+                              Refund
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

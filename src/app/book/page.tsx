@@ -108,13 +108,13 @@ export default function BookPage() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split("T")[0];
 
-  // Submit booking
+  // Submit booking — redirect to Stripe Checkout
   const handleSubmit = async () => {
     setSubmitting(true);
     setError("");
 
     try {
-      const res = await fetch("/api/booking/create", {
+      const res = await fetch("/api/booking/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,13 +135,19 @@ export default function BookPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Booking failed");
+        setSubmitting(false);
         return;
       }
-      setBookingResult(data);
-      setStep("confirmed");
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError("Payment setup failed. Please try again.");
+        setSubmitting(false);
+      }
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -638,7 +644,7 @@ export default function BookPage() {
             </div>
 
             <p className="text-xs text-brown/30 text-center mt-4">
-              Payment will be collected at the time of service.
+              You&apos;ll be redirected to a secure payment page.
             </p>
 
             <div className="flex items-center justify-between mt-8">
@@ -653,7 +659,7 @@ export default function BookPage() {
                 disabled={submitting}
                 className="rounded-full bg-orange px-10 py-3 text-lg font-bold text-white transition hover:bg-orange-dark hover:scale-105 disabled:opacity-50"
               >
-                {submitting ? "Booking..." : "Confirm Booking"}
+                {submitting ? "Redirecting to payment..." : "Pay & Confirm"}
               </button>
             </div>
           </div>
