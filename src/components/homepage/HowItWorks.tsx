@@ -1,21 +1,26 @@
+import Image from "next/image";
+
 const steps = [
   {
     step: "1",
     title: "Pick Your Wash",
     desc: "Choose your car size and throw on any add-ons you want.",
-    emoji: "🧽",
+    image: "/step-pick.png",
+    alt: "Cowboy sponge and spray bottle riding bikes",
   },
   {
     step: "2",
     title: "Choose a Time",
     desc: "Pick a day and time — we'll be there on the dot.",
-    emoji: "📅",
+    image: "/step-schedule.png",
+    alt: "Spray bottle mascot holding a calendar",
   },
   {
     step: "3",
     title: "We Come to You",
     desc: "We roll up, scrub it down, and leave your car looking fresh.",
-    emoji: "🤠",
+    image: "/step-wash.png",
+    alt: "Cowboy sponge and spray bottle leaning on a truck",
   },
 ];
 
@@ -29,7 +34,15 @@ export default function HowItWorks() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         {steps.map((item) => (
           <div key={item.step} className="text-center">
-            <div className="text-5xl mb-4">{item.emoji}</div>
+            <div className="flex justify-center mb-4">
+              <Image
+                src={item.image}
+                alt={item.alt}
+                width={180}
+                height={180}
+                className="object-contain"
+              />
+            </div>
             <h3 className="text-xl font-bold mb-2 text-brown-dark">{item.title}</h3>
             <p className="text-brown/60 leading-relaxed">{item.desc}</p>
           </div>

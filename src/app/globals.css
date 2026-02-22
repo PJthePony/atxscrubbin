@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf0e1;
-  --foreground: #3d2310;
-  --orange: #d4882e;
-  --orange-dark: #b8721f;
-  --brown: #6b3f1f;
-  --brown-light: #8b5e3c;
-  --brown-dark: #3d2310;
-  --cream: #faf0e1;
-  --sand: #f0dcc4;
+  --background: #F0F0F0;
+  --foreground: #000000;
+  --orange: #FFA000;
+  --orange-dark: #BB6800;
+  --brown: #424242;
+  --brown-light: #616161;
+  --brown-dark: #000000;
+  --cream: #F0F0F0;
+  --sand: #E0E0E0;
 }
 
 @theme inline {
