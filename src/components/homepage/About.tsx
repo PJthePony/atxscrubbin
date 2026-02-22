@@ -1,0 +1,25 @@
+import Image from "next/image";
+
+export default function About() {
+  return (
+    <section id="about" className="px-6 py-24 max-w-3xl mx-auto text-center">
+      <Image
+        src="/logo-color.png"
+        alt="ATX Scrubbin' mascots"
+        width={140}
+        height={140}
+        className="mx-auto mb-6"
+      />
+      <h2 className="text-3xl font-bold mb-6 text-brown-dark">Meet Carter &amp; Augie</h2>
+      <p className="text-brown/60 text-lg leading-relaxed mb-4">
+        Just two dudes who&apos;d rather be outside washing cars than sitting in a classroom.
+        We bring everything — soap, water, towels, good vibes.
+        You just tell us where to park.
+      </p>
+      <p className="text-brown/60 text-lg leading-relaxed">
+        Every wash is done by hand. No machines, no shortcuts.
+        We actually care about doing it right. 🤝
+      </p>
+    </section>
+  );
+}
