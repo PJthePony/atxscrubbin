@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { withAdmin } from "@/lib/admin-guard";
+import { sendSMS, completionText } from "@/lib/twilio";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,28 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Send completion text when status changes to completed
+    if (safeUpdates.status === "completed" && data) {
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("customer:customers(full_name, phone)")
+        .eq("id", id)
+        .single();
+
+      const customer = booking?.customer as unknown as { full_name: string; phone: string } | null;
+      if (customer?.phone) {
+        await sendSMS(
+          customer.phone,
+          completionText({ customerName: customer.full_name })
+        );
+
+        await supabase
+          .from("bookings")
+          .update({ completion_notification_sent: true })
+          .eq("id", id);
+      }
     }
 
     return NextResponse.json(data);

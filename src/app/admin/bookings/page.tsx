@@ -49,6 +49,9 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [textingId, setTextingId] = useState<string | null>(null);
+  const [textMessage, setTextMessage] = useState("");
+  const [textSending, setTextSending] = useState(false);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -78,6 +81,25 @@ export default function BookingsPage() {
       body: JSON.stringify({ id, status }),
     });
     loadBookings();
+  };
+
+  const sendText = async (bookingId: string) => {
+    if (!textMessage.trim()) return;
+    setTextSending(true);
+    const res = await fetch("/api/admin/bookings/text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ booking_id: bookingId, message: textMessage }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Failed to send text");
+    } else {
+      alert("Text sent!");
+      setTextMessage("");
+      setTextingId(null);
+    }
+    setTextSending(false);
   };
 
   const refundBooking = async (id: string) => {
@@ -275,6 +297,47 @@ export default function BookingsPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Text customer */}
+                    <div className="pt-2 border-t border-zinc-800">
+                      {textingId === booking.id ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={textMessage}
+                            onChange={(e) => setTextMessage(e.target.value)}
+                            placeholder="Type a message..."
+                            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-white placeholder:text-zinc-500"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") sendText(booking.id);
+                            }}
+                          />
+                          <button
+                            onClick={() => sendText(booking.id)}
+                            disabled={textSending || !textMessage.trim()}
+                            className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 transition disabled:opacity-40"
+                          >
+                            {textSending ? "..." : "Send"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTextingId(null);
+                              setTextMessage("");
+                            }}
+                            className="text-sm text-zinc-500 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setTextingId(booking.id)}
+                          className="text-sm text-blue-400 hover:text-blue-300 transition"
+                        >
+                          💬 Text Customer
+                        </button>
+                      )}
+                    </div>
 
                     {/* Status workflow */}
                     <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">

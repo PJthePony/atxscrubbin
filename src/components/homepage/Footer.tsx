@@ -8,7 +8,7 @@ export default function Footer() {
           &copy; {new Date().getFullYear()} Keep Austin Scrubbin&apos;. All
           rights reserved.
         </div>
-        <div className="flex gap-6 text-sm text-brown/40">
+        <div className="flex flex-wrap justify-center gap-6 text-sm text-brown/40">
           <Link href="/book" className="hover:text-brown-dark transition">
             Book a Wash
           </Link>
@@ -18,6 +18,12 @@ export default function Footer() {
           <a href="#contact" className="hover:text-brown-dark transition">
             Contact
           </a>
+          <Link href="/privacy" className="hover:text-brown-dark transition">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-brown-dark transition">
+            Terms
+          </Link>
         </div>
       </div>
     </footer>
