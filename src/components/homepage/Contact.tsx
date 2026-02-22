@@ -5,20 +5,13 @@ export default function Contact() {
       <p className="text-brown/60 mb-10">
         Questions? Wanna talk about your car? Just say hey.
       </p>
-      <div className="flex flex-col sm:flex-row justify-center gap-6">
+      <div className="flex justify-center">
         <a
-          href="mailto:hello@atxscrubbin.com"
+          href="mailto:keepaustinscrubbin@gmail.com"
           className="flex items-center justify-center gap-3 rounded-2xl border-2 border-brown/15 px-8 py-5 transition hover:border-orange"
         >
           <span className="text-xl">✉️</span>
-          <span className="text-brown/70">hello@atxscrubbin.com</span>
-        </a>
-        <a
-          href="tel:+15125551234"
-          className="flex items-center justify-center gap-3 rounded-2xl border-2 border-brown/15 px-8 py-5 transition hover:border-orange"
-        >
-          <span className="text-xl">📱</span>
-          <span className="text-brown/70">(512) 555-1234</span>
+          <span className="text-brown/70">keepaustinscrubbin@gmail.com</span>
         </a>
       </div>
     </section>
