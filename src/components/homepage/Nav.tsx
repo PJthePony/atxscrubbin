@@ -8,35 +8,35 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-orange/95 backdrop-blur-sm border-b border-black/10">
+    <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
       <div className="flex items-center justify-between px-6 py-3 max-w-6xl mx-auto">
         <Link href="/" className="flex items-center gap-3">
           <Image src="/logo-color.png" alt="ATX Scrubbin'" width={40} height={40} className="rounded" />
-          <span className="text-xl font-bold tracking-tight text-black">
-            ATX <span className="text-white">Scrubbin&apos;</span>
+          <span className="text-xl font-bold tracking-tight text-white">
+            ATX <span className="text-orange">Scrubbin&apos;</span>
           </span>
         </Link>
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="#how-it-works" className="text-sm text-black/70 hover:text-black transition">
+          <a href="#how-it-works" className="text-sm text-white/60 hover:text-white transition">
             How It Works
           </a>
-          <a href="#pricing" className="text-sm text-black/70 hover:text-black transition">
+          <a href="#pricing" className="text-sm text-white/60 hover:text-white transition">
             Pricing
           </a>
-          <a href="#area" className="text-sm text-black/70 hover:text-black transition">
+          <a href="#area" className="text-sm text-white/60 hover:text-white transition">
             Service Area
           </a>
-          <a href="#about" className="text-sm text-black/70 hover:text-black transition">
+          <a href="#about" className="text-sm text-white/60 hover:text-white transition">
             About
           </a>
-          <a href="#contact" className="text-sm text-black/70 hover:text-black transition">
+          <a href="#contact" className="text-sm text-white/60 hover:text-white transition">
             Contact
           </a>
           <Link
             href="/book"
-            className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-black/80"
+            className="rounded-full bg-orange px-5 py-2 text-sm font-semibold text-black transition hover:bg-orange-dark"
           >
             Book a Wash
           </Link>
@@ -44,7 +44,7 @@ export default function Nav() {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden text-black/70 hover:text-black"
+          className="md:hidden text-white/60 hover:text-white"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
@@ -60,26 +60,26 @@ export default function Nav() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-black/10 bg-orange px-6 py-4 space-y-4">
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="block text-black/70 hover:text-black transition">
+        <div className="md:hidden border-t border-white/10 bg-black px-6 py-4 space-y-4">
+          <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="block text-white/60 hover:text-white transition">
             How It Works
           </a>
-          <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-black/70 hover:text-black transition">
+          <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-white/60 hover:text-white transition">
             Pricing
           </a>
-          <a href="#area" onClick={() => setMenuOpen(false)} className="block text-black/70 hover:text-black transition">
+          <a href="#area" onClick={() => setMenuOpen(false)} className="block text-white/60 hover:text-white transition">
             Service Area
           </a>
-          <a href="#about" onClick={() => setMenuOpen(false)} className="block text-black/70 hover:text-black transition">
+          <a href="#about" onClick={() => setMenuOpen(false)} className="block text-white/60 hover:text-white transition">
             About
           </a>
-          <a href="#contact" onClick={() => setMenuOpen(false)} className="block text-black/70 hover:text-black transition">
+          <a href="#contact" onClick={() => setMenuOpen(false)} className="block text-white/60 hover:text-white transition">
             Contact
           </a>
           <Link
             href="/book"
             onClick={() => setMenuOpen(false)}
-            className="block rounded-full bg-black px-5 py-2 text-sm font-semibold text-white text-center transition hover:bg-black/80"
+            className="block rounded-full bg-orange px-5 py-2 text-sm font-semibold text-black text-center transition hover:bg-orange-dark"
           >
             Book a Wash
           </Link>
