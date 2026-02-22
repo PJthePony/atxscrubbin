@@ -29,22 +29,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Tinos", serif;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.6;
-}
-
-@media (min-width: 768px) {
-  body {
-    font-size: 18px;
-  }
 }
 
 /* Ensure small text classes don't go below readable size on mobile */
 @media (max-width: 767px) {
   .text-sm {
-    font-size: 15px !important;
+    font-size: 16px !important;
   }
   .text-xs {
-    font-size: 13px !important;
+    font-size: 14px !important;
   }
 }
