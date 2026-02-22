@@ -702,17 +702,17 @@ export default function BookPage() {
 
         {/* Running total bar */}
         {step !== "confirmed" && selectedSize && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-brown/10 px-6 py-3">
+          <div className="fixed bottom-0 left-0 right-0 bg-black shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-6 py-5">
             <div className="max-w-3xl mx-auto flex items-center justify-between">
               <div>
-                <p className="text-base text-brown/60">
+                <p className="text-lg font-semibold text-white">
                   {selectedSize.name}
                   {selectedAddons.length > 0 &&
                     ` + ${selectedAddons.length} add-on${selectedAddons.length > 1 ? "s" : ""}`}
                 </p>
-                <p className="text-xs text-brown/30">~{totalDuration} min</p>
+                <p className="text-base text-white/60">~{totalDuration} min</p>
               </div>
-              <p className="text-xl font-bold text-orange">${total}</p>
+              <p className="text-3xl font-bold text-orange">${total}</p>
             </div>
           </div>
         )}
