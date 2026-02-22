@@ -212,7 +212,7 @@ export default function BookPage() {
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="max-w-3xl mx-auto px-6 py-10 pb-28">
         {/* Progress */}
         {step !== "confirmed" && (
           <div className="flex items-center justify-center gap-2 mb-10">
