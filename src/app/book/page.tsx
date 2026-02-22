@@ -199,13 +199,13 @@ export default function BookPage() {
               width={36}
               height={36}
             />
-            <span className="text-lg font-bold text-brown-dark">
+            <span className="text-xl font-bold text-brown-dark">
               ATX <span className="text-orange">Scrubbin&apos;</span>
             </span>
           </Link>
           <Link
             href="/"
-            className="text-sm text-brown/50 hover:text-brown-dark transition"
+            className="text-base text-brown/60 hover:text-brown-dark transition"
           >
             Back to Home
           </Link>
@@ -280,10 +280,10 @@ export default function BookPage() {
                       <h3 className="text-xl font-bold text-brown-dark">
                         {size.name}
                       </h3>
-                      <p className="text-sm text-brown/50 mt-1">
+                      <p className="text-base text-brown/60 mt-1">
                         {size.description}
                       </p>
-                      <p className="text-xs text-brown/40 mt-1">
+                      <p className="text-sm text-brown/50 mt-1">
                         ~{size.wash_time_minutes} min
                       </p>
                     </div>
@@ -361,10 +361,10 @@ export default function BookPage() {
                             <h3 className="font-bold text-brown-dark">
                               {addon.name}
                             </h3>
-                            <p className="text-sm text-brown/50">
+                            <p className="text-base text-brown/60">
                               {addon.description}
                             </p>
-                            <p className="text-xs text-brown/40 mt-1">
+                            <p className="text-sm text-brown/50 mt-1">
                               +{addon.time_minutes} min
                             </p>
                           </div>
@@ -406,7 +406,7 @@ export default function BookPage() {
             </p>
 
             <div className="mb-8">
-              <label className="block text-sm font-bold text-brown-dark mb-2">
+              <label className="block text-base font-bold text-brown-dark mb-2">
                 Date
               </label>
               <input
@@ -420,7 +420,7 @@ export default function BookPage() {
 
             {selectedDate && (
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-3">
+                <label className="block text-base font-bold text-brown-dark mb-3">
                   Available Times
                 </label>
                 {slotsLoading ? (
@@ -486,7 +486,7 @@ export default function BookPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-1">
+                <label className="block text-base font-bold text-brown-dark mb-1">
                   Name
                 </label>
                 <input
@@ -498,7 +498,7 @@ export default function BookPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-1">
+                <label className="block text-base font-bold text-brown-dark mb-1">
                   Email
                 </label>
                 <input
@@ -510,7 +510,7 @@ export default function BookPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-1">
+                <label className="block text-base font-bold text-brown-dark mb-1">
                   Phone
                 </label>
                 <input
@@ -522,7 +522,7 @@ export default function BookPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-1">
+                <label className="block text-base font-bold text-brown-dark mb-1">
                   Address
                 </label>
                 <input
@@ -532,12 +532,12 @@ export default function BookPage() {
                   placeholder="Where should we come?"
                   className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition"
                 />
-                <p className="text-xs text-brown/30 mt-1">
+                <p className="text-sm text-brown/50 mt-1">
                   Full street address in Austin, TX
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-bold text-brown-dark mb-1">
+                <label className="block text-base font-bold text-brown-dark mb-1">
                   Notes <span className="font-normal text-brown/40">(optional)</span>
                 </label>
                 <textarea
@@ -581,7 +581,7 @@ export default function BookPage() {
             <div className="rounded-2xl border-2 border-brown/10 bg-white p-6 space-y-5">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-brown/50">Car Size</p>
+                  <p className="text-base text-brown/60">Car Size</p>
                   <p className="font-bold text-brown-dark">
                     {selectedSize?.name}
                   </p>
@@ -607,23 +607,23 @@ export default function BookPage() {
               )}
 
               <div className="border-t border-brown/5 pt-4">
-                <p className="text-sm text-brown/50">When</p>
+                <p className="text-base text-brown/60">When</p>
                 <p className="font-bold text-brown-dark">
                   {formatDate(selectedDate)} at{" "}
                   {selectedSlot && formatTime(selectedSlot.start)}
                 </p>
-                <p className="text-xs text-brown/40">
+                <p className="text-sm text-brown/50">
                   ~{totalDuration} minutes
                 </p>
               </div>
 
               <div className="border-t border-brown/5 pt-4">
-                <p className="text-sm text-brown/50">Where</p>
+                <p className="text-base text-brown/60">Where</p>
                 <p className="font-bold text-brown-dark">{address}</p>
               </div>
 
               <div className="border-t border-brown/5 pt-4">
-                <p className="text-sm text-brown/50">Your Info</p>
+                <p className="text-base text-brown/60">Your Info</p>
                 <p className="text-brown-dark">{name}</p>
                 <p className="text-sm text-brown/60">
                   {email} &middot; {phone}
@@ -632,7 +632,7 @@ export default function BookPage() {
 
               {notes && (
                 <div className="border-t border-brown/5 pt-4">
-                  <p className="text-sm text-brown/50">Notes</p>
+                  <p className="text-base text-brown/60">Notes</p>
                   <p className="text-brown/70">{notes}</p>
                 </div>
               )}
@@ -643,7 +643,7 @@ export default function BookPage() {
               </div>
             </div>
 
-            <p className="text-xs text-brown/30 text-center mt-4">
+            <p className="text-sm text-brown/50 text-center mt-4">
               You&apos;ll be redirected to a secure payment page.
             </p>
 
@@ -680,11 +680,11 @@ export default function BookPage() {
             </p>
 
             <div className="inline-block rounded-2xl border-2 border-orange/20 bg-orange/5 px-8 py-5 mb-8">
-              <p className="text-sm text-brown/50">Total</p>
+              <p className="text-base text-brown/60">Total</p>
               <p className="text-3xl font-bold text-orange">
                 ${bookingResult.total}
               </p>
-              <p className="text-xs text-brown/40 mt-1">
+              <p className="text-sm text-brown/50 mt-1">
                 Pay at time of service
               </p>
             </div>
@@ -705,7 +705,7 @@ export default function BookPage() {
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-brown/10 px-6 py-3">
             <div className="max-w-3xl mx-auto flex items-center justify-between">
               <div>
-                <p className="text-sm text-brown/50">
+                <p className="text-base text-brown/60">
                   {selectedSize.name}
                   {selectedAddons.length > 0 &&
                     ` + ${selectedAddons.length} add-on${selectedAddons.length > 1 ? "s" : ""}`}
