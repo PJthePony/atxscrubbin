@@ -194,10 +194,11 @@ export default function BookPage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image
-              src="/logo-color.png"
+              src="/nav-icon.png"
               alt="ATX Scrubbin'"
               width={36}
               height={36}
+              className="rounded-full"
             />
             <span className="text-xl font-bold text-brown-dark">
               ATX <span className="text-orange">Scrubbin&apos;</span>
