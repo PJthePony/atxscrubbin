@@ -34,6 +34,9 @@ export default function Nav() {
           <a href="#contact" className="text-base text-white/60 hover:text-white transition">
             Contact
           </a>
+          <Link href="/account" className="text-base text-white/60 hover:text-white transition">
+            My Washes
+          </Link>
           <Link
             href="/book"
             className="rounded-full bg-orange px-5 py-2 text-base font-semibold text-black transition hover:bg-orange-dark"
@@ -76,6 +79,9 @@ export default function Nav() {
           <a href="#contact" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
             Contact
           </a>
+          <Link href="/account" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
+            My Washes
+          </Link>
           <Link
             href="/book"
             onClick={() => setMenuOpen(false)}

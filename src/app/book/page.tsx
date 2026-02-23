@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -27,11 +28,15 @@ interface TimeSlot {
 
 type Step = "size" | "addons" | "datetime" | "info" | "review" | "confirmed";
 
-export default function BookPage() {
+function BookContent() {
+  const searchParams = useSearchParams();
+  const rebookId = searchParams.get("rebook");
+
   const [step, setStep] = useState<Step>("size");
   const [carSizes, setCarSizes] = useState<CarSize[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rebookBanner, setRebookBanner] = useState(false);
 
   // Selections
   const [selectedSize, setSelectedSize] = useState<CarSize | null>(null);
@@ -59,17 +64,65 @@ export default function BookPage() {
   } | null>(null);
   const [error, setError] = useState("");
 
-  // Load services
+  // Load services + handle rebook pre-fill
   useEffect(() => {
-    fetch("/api/booking/services")
-      .then((r) => r.json())
-      .then((data) => {
-        setCarSizes(data.car_sizes || []);
-        setAddons(data.addons || []);
-      })
-      .catch(() => setError("Failed to load services"))
-      .finally(() => setLoading(false));
-  }, []);
+    const loadData = async () => {
+      try {
+        const servicesRes = await fetch("/api/booking/services");
+        const servicesData = await servicesRes.json();
+        const loadedSizes = servicesData.car_sizes || [];
+        const loadedAddons = servicesData.addons || [];
+        setCarSizes(loadedSizes);
+        setAddons(loadedAddons);
+
+        // If rebooking, pre-fill from previous booking
+        if (rebookId) {
+          try {
+            const rebookRes = await fetch(
+              `/api/account/rebook?id=${rebookId}`
+            );
+            if (rebookRes.ok) {
+              const rebookData = await rebookRes.json();
+
+              // Pre-fill car size
+              const size = loadedSizes.find(
+                (s: CarSize) => s.id === rebookData.car_size_id
+              );
+              if (size) setSelectedSize(size);
+
+              // Pre-fill addons
+              const selectedAddonsList = loadedAddons.filter((a: Addon) =>
+                rebookData.addon_ids.includes(a.id)
+              );
+              setSelectedAddons(selectedAddonsList);
+
+              // Pre-fill customer info
+              if (rebookData.customer_name) setName(rebookData.customer_name);
+              if (rebookData.customer_email)
+                setEmail(rebookData.customer_email);
+              if (rebookData.customer_phone)
+                setPhone(rebookData.customer_phone);
+              if (rebookData.address) setAddress(rebookData.address);
+              if (rebookData.notes) setNotes(rebookData.notes);
+
+              setRebookBanner(true);
+
+              // Skip to date/time step since size + addons are pre-filled
+              if (size) setStep("datetime");
+            }
+          } catch {
+            // Rebook pre-fill failed, just proceed normally
+          }
+        }
+      } catch {
+        setError("Failed to load services");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [rebookId]);
 
   // Calculate totals
   const basePrice = selectedSize?.base_price || 0;
@@ -250,6 +303,13 @@ export default function BookPage() {
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
+          </div>
+        )}
+
+        {rebookBanner && step !== "confirmed" && (
+          <div className="mb-6 p-4 rounded-xl bg-orange/10 border border-orange/20 text-brown-dark text-base">
+            Rebooking from a previous wash — your selections are pre-filled.
+            Just pick a new date and time!
           </div>
         )}
 
@@ -719,5 +779,19 @@ export default function BookPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-cream flex items-center justify-center">
+          <p className="text-brown/60">Loading...</p>
+        </div>
+      }
+    >
+      <BookContent />
+    </Suspense>
   );
 }

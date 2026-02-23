@@ -11,16 +11,17 @@ function SuccessContent() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <nav className="border-b border-brown/10 px-6 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+      <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-3 max-w-3xl mx-auto">
           <Link href="/" className="flex items-center gap-3">
             <Image
-              src="/logo-color.png"
+              src="/nav-icon.png"
               alt="ATX Scrubbin'"
               width={36}
               height={36}
+              className="rounded-full"
             />
-            <span className="text-lg font-bold text-brown-dark">
+            <span className="text-2xl font-bold tracking-tight text-white">
               ATX <span className="text-orange">Scrubbin&apos;</span>
             </span>
           </Link>
@@ -43,12 +44,20 @@ function SuccessContent() {
           </p>
         )}
 
-        <Link
-          href="/"
-          className="inline-block rounded-full border-2 border-brown/15 px-8 py-3 font-bold text-brown/70 transition hover:border-orange hover:text-brown-dark"
-        >
-          Back to Home
-        </Link>
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <Link
+            href="/account"
+            className="inline-block rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark"
+          >
+            View My Washes
+          </Link>
+          <Link
+            href="/"
+            className="inline-block rounded-full border-2 border-brown/15 px-8 py-3 font-bold text-brown/70 transition hover:border-orange hover:text-brown-dark"
+          >
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );
