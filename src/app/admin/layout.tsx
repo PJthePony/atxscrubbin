@@ -73,15 +73,18 @@ export default function AdminLayout({
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-950">
-        <button onClick={() => setSidebarOpen(true)} className="text-zinc-400 hover:text-white">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="flex items-center justify-center w-11 h-11 -ml-2 text-zinc-400 hover:text-white rounded-lg active:bg-zinc-800 transition"
+        >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <span className="text-sm font-bold">
+        <span className="text-base font-bold">
           ATX <span className="text-orange">Scrubbin&apos;</span>
         </span>
-        <div className="w-6" />
+        <div className="w-11" />
       </div>
 
       <div className="flex">
@@ -114,13 +117,13 @@ export default function AdminLayout({
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                     active
                       ? "bg-orange/10 text-orange"
                       : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
                   }`}
                 >
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                   </svg>
                   {item.label}
@@ -130,10 +133,10 @@ export default function AdminLayout({
           </nav>
 
           <div className="border-t border-zinc-800 px-4 py-4">
-            <div className="text-sm text-zinc-400 mb-2">{user.username}</div>
+            <div className="text-sm text-zinc-400 mb-3">{user.username}</div>
             <button
               onClick={handleLogout}
-              className="text-xs text-zinc-500 hover:text-red-400 transition"
+              className="text-sm text-zinc-500 hover:text-red-400 py-1 transition"
             >
               Sign Out
             </button>

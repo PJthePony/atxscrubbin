@@ -269,17 +269,21 @@ function BookContent() {
       <div className="max-w-3xl mx-auto px-6 py-10 pb-28">
         {/* Progress */}
         {step !== "confirmed" && (
-          <div className="flex items-center justify-center gap-2 mb-10">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-10">
             {steps.map((s, i) => (
-              <div key={s.key} className="flex items-center gap-2">
+              <div key={s.key} className="flex items-center gap-1.5 sm:gap-2">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition ${
+                  className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-bold transition ${
                     i <= currentIndex
                       ? "bg-orange text-white"
                       : "bg-brown/10 text-brown/40"
                   }`}
                 >
-                  {i + 1}
+                  {i < currentIndex ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    i + 1
+                  )}
                 </div>
                 <span
                   className={`text-xs hidden sm:block ${
@@ -330,7 +334,7 @@ function BookContent() {
                     setSelectedSize(size);
                     setStep("addons");
                   }}
-                  className={`text-left rounded-2xl border-2 p-6 transition hover:border-orange ${
+                  className={`text-left rounded-2xl border-2 p-6 transition hover:border-orange active:scale-[0.99] ${
                     selectedSize?.id === size.id
                       ? "border-orange bg-orange/5"
                       : "border-brown/10"
@@ -439,16 +443,17 @@ function BookContent() {
                 })}
               </div>
             )}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-8">
               <button
                 onClick={() => setStep("size")}
-                className="text-sm text-brown/50 hover:text-brown-dark transition"
+                className="flex items-center gap-1 text-base text-brown/70 hover:text-brown-dark py-3 px-1 transition active:text-orange"
               >
-                &larr; Back
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                Back
               </button>
               <button
                 onClick={() => setStep("datetime")}
-                className="rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark"
+                className="rounded-full bg-orange px-8 py-3.5 font-bold text-white transition hover:bg-orange-dark active:scale-[0.98]"
               >
                 {selectedAddons.length === 0 ? "Skip" : "Next"} &rarr;
               </button>
@@ -475,7 +480,7 @@ function BookContent() {
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 min={minDate}
-                className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark focus:border-orange focus:outline-none transition"
+                className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3.5 text-brown-dark text-base focus:border-orange focus:outline-none transition"
               />
             </div>
 
@@ -503,7 +508,7 @@ function BookContent() {
                       <button
                         key={slot.start}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`rounded-xl border-2 px-4 py-3 text-center font-semibold transition hover:border-orange ${
+                        className={`rounded-xl border-2 px-4 py-4 text-center font-semibold text-base transition hover:border-orange active:scale-[0.98] ${
                           selectedSlot?.start === slot.start
                             ? "border-orange bg-orange/5 text-brown-dark"
                             : "border-brown/10 text-brown/70"
@@ -520,14 +525,15 @@ function BookContent() {
             <div className="flex items-center justify-between mt-8">
               <button
                 onClick={() => setStep("addons")}
-                className="text-sm text-brown/50 hover:text-brown-dark transition"
+                className="flex items-center gap-1 text-base text-brown/70 hover:text-brown-dark py-3 px-1 transition active:text-orange"
               >
-                &larr; Back
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                Back
               </button>
               <button
                 onClick={() => setStep("info")}
                 disabled={!selectedSlot}
-                className="rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark disabled:opacity-40 disabled:cursor-not-allowed"
+                className="rounded-full bg-orange px-8 py-3.5 font-bold text-white transition hover:bg-orange-dark disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 Next &rarr;
               </button>
@@ -614,14 +620,15 @@ function BookContent() {
             <div className="flex items-center justify-between mt-8">
               <button
                 onClick={() => setStep("datetime")}
-                className="text-sm text-brown/50 hover:text-brown-dark transition"
+                className="flex items-center gap-1 text-base text-brown/70 hover:text-brown-dark py-3 px-1 transition active:text-orange"
               >
-                &larr; Back
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                Back
               </button>
               <button
                 onClick={() => setStep("review")}
                 disabled={!name || !email || !phone || !address}
-                className="rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark disabled:opacity-40 disabled:cursor-not-allowed"
+                className="rounded-full bg-orange px-8 py-3.5 font-bold text-white transition hover:bg-orange-dark disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 Review &rarr;
               </button>
@@ -708,17 +715,18 @@ function BookContent() {
               You&apos;ll be redirected to a secure payment page.
             </p>
 
-            <div className="flex items-center justify-between mt-8">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 mt-8">
               <button
                 onClick={() => setStep("info")}
-                className="text-sm text-brown/50 hover:text-brown-dark transition"
+                className="flex items-center gap-1 text-base text-brown/70 hover:text-brown-dark py-3 px-1 transition active:text-orange"
               >
-                &larr; Back
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                Back
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="rounded-full bg-orange px-10 py-3 text-lg font-bold text-white transition hover:bg-orange-dark hover:scale-105 disabled:opacity-50"
+                className="w-full sm:w-auto rounded-full bg-orange px-10 py-4 text-lg font-bold text-white transition hover:bg-orange-dark active:scale-[0.98] disabled:opacity-50"
               >
                 {submitting ? "Redirecting to payment..." : "Pay & Confirm"}
               </button>

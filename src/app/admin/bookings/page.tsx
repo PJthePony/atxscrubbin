@@ -142,11 +142,11 @@ export default function BookingsPage() {
             All bookings, past and upcoming
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-white"
+            className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white min-h-[44px]"
           >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((s) => (
@@ -159,12 +159,12 @@ export default function BookingsPage() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-white"
+            className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white min-h-[44px]"
           />
           {dateFilter && (
             <button
               onClick={() => setDateFilter("")}
-              className="text-xs text-zinc-500 hover:text-white"
+              className="text-sm text-zinc-400 hover:text-white py-2 px-2 transition"
             >
               Clear
             </button>
@@ -307,7 +307,7 @@ export default function BookingsPage() {
                             value={textMessage}
                             onChange={(e) => setTextMessage(e.target.value)}
                             placeholder="Type a message..."
-                            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-white placeholder:text-zinc-500"
+                            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") sendText(booking.id);
                             }}
@@ -315,7 +315,7 @@ export default function BookingsPage() {
                           <button
                             onClick={() => sendText(booking.id)}
                             disabled={textSending || !textMessage.trim()}
-                            className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 transition disabled:opacity-40"
+                            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition disabled:opacity-40"
                           >
                             {textSending ? "..." : "Send"}
                           </button>
@@ -324,7 +324,7 @@ export default function BookingsPage() {
                               setTextingId(null);
                               setTextMessage("");
                             }}
-                            className="text-sm text-zinc-500 hover:text-white"
+                            className="text-sm text-zinc-400 hover:text-white py-2 px-2 transition"
                           >
                             Cancel
                           </button>
@@ -332,24 +332,24 @@ export default function BookingsPage() {
                       ) : (
                         <button
                           onClick={() => setTextingId(booking.id)}
-                          className="text-sm text-blue-400 hover:text-blue-300 transition"
+                          className="text-sm text-blue-400 hover:text-blue-300 py-2 transition"
                         >
-                          💬 Text Customer
+                          Text Customer
                         </button>
                       )}
                     </div>
 
                     {/* Status workflow */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
-                      <span className="text-sm text-zinc-500 mr-2">
-                        Update status:
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800">
+                      <span className="text-sm text-zinc-500 mr-1">
+                        Status:
                       </span>
                       {booking.status === "confirmed" && (
                         <button
                           onClick={() =>
                             updateStatus(booking.id, "in_progress")
                           }
-                          className="rounded-lg bg-yellow-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-yellow-500 transition"
+                          className="rounded-lg bg-yellow-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-500 active:scale-[0.98] transition"
                         >
                           Start Wash
                         </button>
@@ -359,7 +359,7 @@ export default function BookingsPage() {
                           onClick={() =>
                             updateStatus(booking.id, "completed")
                           }
-                          className="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-500 transition"
+                          className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-500 active:scale-[0.98] transition"
                         >
                           Mark Complete
                         </button>
@@ -370,7 +370,7 @@ export default function BookingsPage() {
                           onClick={() =>
                             updateStatus(booking.id, "cancelled")
                           }
-                          className="rounded-lg bg-zinc-700 px-4 py-1.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-600 transition"
+                          className="rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-600 active:scale-[0.98] transition"
                         >
                           Cancel
                         </button>
@@ -383,7 +383,7 @@ export default function BookingsPage() {
                           {booking.stripe_payment_intent_id && (
                             <button
                               onClick={() => refundBooking(booking.id)}
-                              className="rounded-lg bg-red-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-600 transition"
+                              className="rounded-lg bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600 active:scale-[0.98] transition"
                             >
                               Refund
                             </button>
@@ -398,7 +398,7 @@ export default function BookingsPage() {
                           {booking.stripe_payment_intent_id && (
                             <button
                               onClick={() => refundBooking(booking.id)}
-                              className="rounded-lg bg-red-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-600 transition"
+                              className="rounded-lg bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600 active:scale-[0.98] transition"
                             >
                               Refund
                             </button>

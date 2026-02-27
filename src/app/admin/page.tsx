@@ -126,9 +126,9 @@ export default function AdminDashboard() {
           <Link
             key={link.href}
             href={link.href}
-            className="rounded-xl border border-zinc-800 p-5 transition hover:border-zinc-700 hover:bg-zinc-900/50"
+            className="rounded-xl border border-zinc-800 p-5 transition hover:border-zinc-700 hover:bg-zinc-900/50 active:bg-zinc-800/50"
           >
-            <p className="font-semibold mb-1">{link.label}</p>
+            <p className="font-semibold text-base mb-1">{link.label}</p>
             <p className="text-sm text-zinc-400">{link.desc}</p>
           </Link>
         ))}

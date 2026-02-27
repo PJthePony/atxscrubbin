@@ -251,7 +251,7 @@ export default function AccountPage() {
             </Link>
             <Link
               href="/book"
-              className="rounded-full bg-orange px-5 py-2 text-base font-semibold text-black transition hover:bg-orange-dark"
+              className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-black transition hover:bg-orange-dark"
             >
               Book a Wash
             </Link>
@@ -338,7 +338,7 @@ export default function AccountPage() {
                 </p>
                 <Link
                   href="/book"
-                  className="inline-block rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark"
+                  className="inline-block rounded-full bg-orange px-8 py-3.5 font-bold text-white transition hover:bg-orange-dark active:scale-[0.98]"
                 >
                   Book a Wash
                 </Link>
@@ -386,26 +386,23 @@ export default function AccountPage() {
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-3 mt-4">
+                          <div className="flex items-center gap-2 mt-4 flex-wrap">
                             <Link
                               href={`/account/bookings/${booking.id}`}
-                              className="text-base text-orange font-semibold hover:text-orange-dark transition"
+                              className="rounded-lg border border-orange/30 bg-orange/5 px-4 py-2 text-base text-orange font-semibold hover:bg-orange/10 transition"
                             >
                               View Details
                             </Link>
                             {isCancellable(booking) && (
-                              <>
-                                <span className="text-brown/20">|</span>
-                                <button
-                                  onClick={() => handleCancel(booking.id)}
-                                  disabled={cancellingId === booking.id}
-                                  className="text-base text-red-500 font-semibold hover:text-red-700 transition disabled:opacity-50"
-                                >
-                                  {cancellingId === booking.id
-                                    ? "Cancelling..."
-                                    : "Cancel"}
-                                </button>
-                              </>
+                              <button
+                                onClick={() => handleCancel(booking.id)}
+                                disabled={cancellingId === booking.id}
+                                className="rounded-lg border border-red-200 px-4 py-2 text-base text-red-500 font-semibold hover:bg-red-50 transition disabled:opacity-50"
+                              >
+                                {cancellingId === booking.id
+                                  ? "Cancelling..."
+                                  : "Cancel Booking"}
+                              </button>
                             )}
                           </div>
                         </div>
@@ -449,24 +446,21 @@ export default function AccountPage() {
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-3 mt-4">
+                          <div className="flex items-center gap-2 mt-4 flex-wrap">
                             <Link
                               href={`/account/bookings/${booking.id}`}
-                              className="text-base text-orange font-semibold hover:text-orange-dark transition"
+                              className="rounded-lg border border-brown/15 px-4 py-2 text-base text-brown/70 font-semibold hover:border-orange hover:text-brown-dark transition"
                             >
                               View Details
                             </Link>
                             {(booking.status === "completed" ||
                               booking.status === "confirmed") && (
-                              <>
-                                <span className="text-brown/20">|</span>
-                                <Link
-                                  href={`/book?rebook=${booking.id}`}
-                                  className="text-base text-orange font-semibold hover:text-orange-dark transition"
-                                >
-                                  Book Again
-                                </Link>
-                              </>
+                              <Link
+                                href={`/book?rebook=${booking.id}`}
+                                className="rounded-lg bg-orange/10 border border-orange/20 px-4 py-2 text-base text-orange font-semibold hover:bg-orange/20 transition"
+                              >
+                                Book Again
+                              </Link>
                             )}
                           </div>
                         </div>

@@ -39,15 +39,15 @@ export default function Nav() {
           </Link>
           <Link
             href="/book"
-            className="rounded-full bg-orange px-5 py-2 text-base font-semibold text-black transition hover:bg-orange-dark"
+            className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-black transition hover:bg-orange-dark"
           >
             Book a Wash
           </Link>
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — 44px minimum touch target */}
         <button
-          className="md:hidden text-white/60 hover:text-white"
+          className="md:hidden flex items-center justify-center w-11 h-11 -mr-2 text-white/60 hover:text-white rounded-lg active:bg-white/10 transition"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
@@ -61,34 +61,38 @@ export default function Nav() {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — larger touch targets, better spacing */}
       {menuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-black px-6 py-4 space-y-4">
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            How It Works
-          </a>
-          <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            Pricing
-          </a>
-          <a href="#area" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            Service Area
-          </a>
-          <a href="#about" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            About
-          </a>
-          <a href="#contact" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            Contact
-          </a>
-          <Link href="/account" onClick={() => setMenuOpen(false)} className="block text-lg text-white/60 hover:text-white transition">
-            My Washes
-          </Link>
-          <Link
-            href="/book"
-            onClick={() => setMenuOpen(false)}
-            className="block rounded-full bg-orange px-5 py-2 text-lg font-semibold text-black text-center transition hover:bg-orange-dark"
-          >
-            Book a Wash
-          </Link>
+        <div className="md:hidden border-t border-white/10 bg-black px-6 py-3">
+          <div className="space-y-1">
+            <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              How It Works
+            </a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              Pricing
+            </a>
+            <a href="#area" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              Service Area
+            </a>
+            <a href="#about" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              About
+            </a>
+            <a href="#contact" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              Contact
+            </a>
+            <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
+              My Washes
+            </Link>
+          </div>
+          <div className="pt-4 pb-2">
+            <Link
+              href="/book"
+              onClick={() => setMenuOpen(false)}
+              className="block rounded-full bg-orange px-6 py-3.5 text-lg font-bold text-black text-center transition hover:bg-orange-dark active:scale-[0.98]"
+            >
+              Book a Wash
+            </Link>
+          </div>
         </div>
       )}
     </nav>

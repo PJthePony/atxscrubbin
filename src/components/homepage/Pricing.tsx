@@ -72,10 +72,10 @@ export default function Pricing() {
                 </p>
                 <Link
                   href="/book"
-                  className={`block rounded-full px-6 py-2.5 text-sm font-bold transition ${
+                  className={`block rounded-full px-6 py-3.5 text-base font-bold transition active:scale-[0.98] ${
                     isPopular
                       ? "bg-orange text-white hover:bg-orange-dark"
-                      : "border-2 border-brown/20 text-brown/70 hover:border-orange hover:text-brown-dark"
+                      : "bg-brown-dark text-white hover:bg-brown-light"
                   }`}
                 >
                   Book Now

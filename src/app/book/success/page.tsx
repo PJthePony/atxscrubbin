@@ -44,16 +44,16 @@ function SuccessContent() {
           </p>
         )}
 
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-4 px-2 sm:px-0">
           <Link
             href="/account"
-            className="inline-block rounded-full bg-orange px-8 py-3 font-bold text-white transition hover:bg-orange-dark"
+            className="inline-block rounded-full bg-orange px-8 py-4 font-bold text-white text-center transition hover:bg-orange-dark active:scale-[0.98]"
           >
             View My Washes
           </Link>
           <Link
             href="/"
-            className="inline-block rounded-full border-2 border-brown/15 px-8 py-3 font-bold text-brown/70 transition hover:border-orange hover:text-brown-dark"
+            className="inline-block rounded-full border-2 border-brown/15 px-8 py-4 font-bold text-brown/70 text-center transition hover:border-orange hover:text-brown-dark"
           >
             Back to Home
           </Link>

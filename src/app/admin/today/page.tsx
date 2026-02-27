@@ -195,22 +195,22 @@ export default function TodayPage() {
                     {booking.status === "confirmed" && (
                       <button
                         onClick={() => updateStatus(booking.id, "in_progress")}
-                        className="flex-1 rounded-lg bg-yellow-600 py-2.5 text-sm font-bold text-white hover:bg-yellow-500 transition"
+                        className="flex-1 rounded-xl bg-yellow-600 py-3.5 text-base font-bold text-white hover:bg-yellow-500 active:scale-[0.98] transition"
                       >
-                        🧽 Start Wash
+                        Start Wash
                       </button>
                     )}
                     {booking.status === "in_progress" && (
                       <button
                         onClick={() => updateStatus(booking.id, "completed")}
-                        className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white hover:bg-green-500 transition"
+                        className="flex-1 rounded-xl bg-green-600 py-3.5 text-base font-bold text-white hover:bg-green-500 active:scale-[0.98] transition"
                       >
-                        ✅ Mark Done
+                        Mark Done
                       </button>
                     )}
                     {booking.status === "completed" && (
-                      <div className="flex-1 text-center py-2.5 text-sm text-green-400 font-semibold">
-                        ✅ Completed
+                      <div className="flex-1 text-center py-3.5 text-base text-green-400 font-semibold">
+                        Completed
                       </div>
                     )}
                   </div>
