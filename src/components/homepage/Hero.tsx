@@ -8,8 +8,8 @@ export default function Hero() {
         <Image
           src="/logo-color.png"
           alt="ATX Scrubbin' mascots"
-          width={200}
-          height={200}
+          width={260}
+          height={260}
           className="mb-8 drop-shadow-[0_0_30px_rgba(255,160,0,0.3)]"
           priority
         />
@@ -19,6 +19,9 @@ export default function Hero() {
         </h1>
         <p className="mt-5 text-lg text-white/60 max-w-md">
           Mobile car wash that comes to your driveway. Austin, TX.
+        </p>
+        <p className="mt-3 text-sm font-bold tracking-widest uppercase text-orange/80">
+          Keep Austin Scrubbin&apos;
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-2 sm:px-0">
           <Link

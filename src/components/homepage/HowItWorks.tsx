@@ -38,8 +38,8 @@ export default function HowItWorks() {
               <Image
                 src={item.image}
                 alt={item.alt}
-                width={180}
-                height={180}
+                width={220}
+                height={220}
                 className="object-contain"
               />
             </div>

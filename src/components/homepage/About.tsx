@@ -6,8 +6,8 @@ export default function About() {
       <Image
         src="/logo-color.png"
         alt="ATX Scrubbin' mascots"
-        width={140}
-        height={140}
+        width={180}
+        height={180}
         className="mx-auto mb-6"
       />
       <h2 className="text-3xl font-bold mb-6 text-brown-dark">Meet Carter &amp; Augie</h2>
