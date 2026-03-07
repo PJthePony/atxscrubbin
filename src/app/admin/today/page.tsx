@@ -98,7 +98,7 @@ export default function TodayPage() {
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
           <p className="text-2xl font-bold">{active.length}</p>
           <p className="text-xs text-zinc-500">Washes</p>

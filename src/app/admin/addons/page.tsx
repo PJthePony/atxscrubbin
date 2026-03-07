@@ -201,8 +201,8 @@ export default function AddonsPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-xl border border-zinc-800 overflow-hidden">
+      {/* Table (desktop) */}
+      <div className="hidden sm:block rounded-xl border border-zinc-800 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-zinc-900/80 text-left text-xs text-zinc-500">
             <tr>
@@ -266,6 +266,52 @@ export default function AddonsPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="sm:hidden space-y-3">
+        {addons.map((a, i) => (
+          <div key={a.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveAddon(i, "up")}
+                    disabled={i === 0}
+                    className="text-zinc-500 hover:text-white disabled:opacity-20 transition p-0.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                  </button>
+                  <button
+                    onClick={() => moveAddon(i, "down")}
+                    disabled={i === addons.length - 1}
+                    className="text-zinc-500 hover:text-white disabled:opacity-20 transition p-0.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                </div>
+                <p className="font-medium">{a.name}</p>
+              </div>
+              <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${a.active ? "bg-green-500/10 text-green-400" : "bg-zinc-700/50 text-zinc-400"}`}>
+                {a.active ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-400 mb-2">{a.description}</p>
+            <div className="flex items-center gap-4 text-sm mb-3">
+              <span className="font-semibold">${Number(a.price).toFixed(2)}</span>
+              <span className="text-zinc-500">{a.time_minutes > 0 ? `+${a.time_minutes} min` : "—"}</span>
+            </div>
+            <div className="flex gap-3 text-xs">
+              <button onClick={() => startEdit(a)} className="text-zinc-400 hover:text-white">Edit</button>
+              <button onClick={() => remove(a.id)} className="text-zinc-500 hover:text-red-400">Delete</button>
+            </div>
+          </div>
+        ))}
+        {addons.length === 0 && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+            No add-ons yet. Add one to get started.
+          </div>
+        )}
       </div>
     </div>
   );

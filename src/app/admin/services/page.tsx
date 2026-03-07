@@ -169,8 +169,8 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-xl border border-zinc-800 overflow-hidden">
+      {/* Table (desktop) */}
+      <div className="hidden sm:block rounded-xl border border-zinc-800 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-zinc-900/80 text-left text-xs text-zinc-500">
             <tr>
@@ -213,6 +213,34 @@ export default function ServicesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="sm:hidden space-y-3">
+        {services.map((s) => (
+          <div key={s.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium">{s.name}</p>
+              <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${s.active ? "bg-green-500/10 text-green-400" : "bg-zinc-700/50 text-zinc-400"}`}>
+                {s.active ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-400 mb-2">{s.description}</p>
+            <div className="flex items-center gap-4 text-sm mb-3">
+              <span className="font-semibold">${Number(s.base_price).toFixed(2)}</span>
+              <span className="text-zinc-500">{s.wash_time_minutes} min</span>
+            </div>
+            <div className="flex gap-3 text-xs">
+              <button onClick={() => startEdit(s)} className="text-zinc-400 hover:text-white">Edit</button>
+              <button onClick={() => remove(s.id)} className="text-zinc-500 hover:text-red-400">Delete</button>
+            </div>
+          </div>
+        ))}
+        {services.length === 0 && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+            No car sizes yet. Add one to get started.
+          </div>
+        )}
       </div>
     </div>
   );

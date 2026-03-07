@@ -226,7 +226,8 @@ export default function TeamPage() {
         </div>
       )}
 
-      <div className="rounded-xl border border-zinc-800 overflow-hidden">
+      {/* Table (desktop) */}
+      <div className="hidden sm:block rounded-xl border border-zinc-800 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-zinc-900/80 text-left text-xs text-zinc-500">
             <tr>
@@ -276,6 +277,41 @@ export default function TeamPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="sm:hidden space-y-3">
+        {members.map((m) => (
+          <div key={m.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-medium">{m.display_name}</p>
+                <p className="text-xs text-zinc-500">@{m.username}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${m.role === "admin" ? "bg-orange/10 text-orange" : "bg-zinc-700/50 text-zinc-400"}`}>
+                  {m.role}
+                </span>
+                <button
+                  onClick={() => toggleActive(m)}
+                  className={`inline-block rounded-full px-2 py-0.5 text-xs cursor-pointer ${m.active ? "bg-green-500/10 text-green-400" : "bg-zinc-700/50 text-zinc-400"}`}
+                >
+                  {m.active ? "Active" : "Inactive"}
+                </button>
+              </div>
+            </div>
+            {m.phone && <p className="text-sm text-zinc-400 mb-2">📱 {m.phone}</p>}
+            <div className="flex gap-3 text-xs">
+              <button onClick={() => startEdit(m)} className="text-zinc-400 hover:text-white">Edit</button>
+              <button onClick={() => remove(m.id)} className="text-zinc-500 hover:text-red-400">Delete</button>
+            </div>
+          </div>
+        ))}
+        {members.length === 0 && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+            No team members yet. Add Carter and Augie to get started.
+          </div>
+        )}
       </div>
     </div>
   );
