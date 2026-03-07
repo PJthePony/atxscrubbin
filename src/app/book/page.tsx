@@ -57,6 +57,8 @@ function BookContent() {
   const [addressOutOfArea, setAddressOutOfArea] = useState(false);
   const [addressValidating, setAddressValidating] = useState(false);
   const [notes, setNotes] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(true);
+  const [emailOptIn, setEmailOptIn] = useState(true);
 
   // Confirmation
   const [submitting, setSubmitting] = useState(false);
@@ -261,6 +263,8 @@ function BookContent() {
           customer_name: name,
           customer_email: email,
           customer_phone: phone,
+          sms_opt_in: smsOptIn,
+          email_opt_in: emailOptIn,
           notes,
         }),
       });
@@ -660,6 +664,33 @@ function BookContent() {
                   placeholder="(512) 555-1234"
                   className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition"
                 />
+                <div className="mt-3 space-y-2">
+                  <label className="flex items-start gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={smsOptIn}
+                      onChange={(e) => setSmsOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-brown/20 text-orange focus:ring-orange cursor-pointer accent-orange"
+                    />
+                    <span className="text-sm text-brown/70 group-hover:text-brown-dark transition">
+                      Send me text reminders about my appointment
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={emailOptIn}
+                      onChange={(e) => setEmailOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-brown/20 text-orange focus:ring-orange cursor-pointer accent-orange"
+                    />
+                    <span className="text-sm text-brown/70 group-hover:text-brown-dark transition">
+                      Send me email reminders about my appointment
+                    </span>
+                  </label>
+                  <p className="text-xs text-brown/40 pl-6">
+                    We&apos;ll send a reminder the day before and an hour before your wash. Msg &amp; data rates may apply. Reply STOP to unsubscribe.
+                  </p>
+                </div>
               </div>
               <div>
                 <label className="block text-base font-bold text-brown-dark mb-1">

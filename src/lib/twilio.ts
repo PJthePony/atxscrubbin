@@ -14,6 +14,21 @@ function getTwilioClient() {
   return client;
 }
 
+// ---- Phone number normalization ----
+
+export function normalizePhone(phone: string): string {
+  let normalized = phone.replace(/[^\d+]/g, "");
+  if (!normalized.startsWith("+")) {
+    if (normalized.length === 10) normalized = "+1" + normalized;
+    else if (normalized.length === 11 && normalized.startsWith("1"))
+      normalized = "+" + normalized;
+    else normalized = "+1" + normalized;
+  }
+  return normalized;
+}
+
+// ---- SMS sending ----
+
 export async function sendSMS(to: string, body: string) {
   const from = process.env.TWILIO_PHONE_NUMBER;
   if (!from) {
@@ -21,14 +36,7 @@ export async function sendSMS(to: string, body: string) {
     return null;
   }
 
-  // Normalize phone number — add +1 if needed
-  let normalized = to.replace(/[^\d+]/g, "");
-  if (!normalized.startsWith("+")) {
-    if (normalized.length === 10) normalized = "+1" + normalized;
-    else if (normalized.length === 11 && normalized.startsWith("1"))
-      normalized = "+" + normalized;
-    else normalized = "+1" + normalized;
-  }
+  const normalized = normalizePhone(to);
 
   try {
     const message = await getTwilioClient().messages.create({
@@ -75,4 +83,16 @@ export function completionText(data: {
   customerName: string;
 }) {
   return `All done, ${data.customerName}! Your ride is looking fresh. ✨ Thanks for choosing Keep Austin Scrubbin'! Hope to see you again soon. 🤝`;
+}
+
+export function smsOptInText(data: { customerName: string }) {
+  return `Hey ${data.customerName}! ATX Scrubbin' here. 🤠 Reply Y to receive text updates about your appointments, or STOP to opt out anytime. Msg & data rates may apply.`;
+}
+
+export function smsOptInConfirmedText() {
+  return `You're all set! 🎉 You'll get text reminders for your upcoming appointments. Reply STOP anytime to unsubscribe. — Keep Austin Scrubbin'`;
+}
+
+export function smsDefaultReplyText() {
+  return `Text Y to opt in to appointment reminders, or STOP to opt out. For help, email atxscrubbin@gmail.com — Keep Austin Scrubbin'`;
 }

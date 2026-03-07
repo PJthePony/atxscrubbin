@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
     customer_name,
     customer_email,
     customer_phone,
+    sms_opt_in,
+    email_opt_in,
     notes,
   } = body;
 
@@ -106,6 +108,8 @@ export async function POST(request: NextRequest) {
         address,
         lat: lat || null,
         lng: lng || null,
+        sms_opt_in: sms_opt_in ?? false,
+        email_opt_in: email_opt_in ?? false,
       })
       .eq("id", customerId);
   } else {
@@ -118,6 +122,8 @@ export async function POST(request: NextRequest) {
         address,
         lat: lat || null,
         lng: lng || null,
+        sms_opt_in: sms_opt_in ?? false,
+        email_opt_in: email_opt_in ?? false,
       })
       .select("id")
       .single();

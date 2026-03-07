@@ -32,6 +32,9 @@ export interface Customer {
   address: string;
   lat: number | null;
   lng: number | null;
+  sms_opt_in: boolean;
+  sms_confirmed: boolean;
+  email_opt_in: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -36,16 +36,18 @@ export async function GET(request: NextRequest) {
 
   // ---- Day-before reminders ----
   // Send to bookings happening tomorrow that haven't been reminded yet
+  // Only send to customers who opted in AND confirmed via SMS reply
   const { data: dayBeforeBookings } = await supabase
     .from("bookings")
-    .select("id, scheduled_start, address, customer:customers(full_name, phone)")
+    .select("id, scheduled_start, address, customer:customers(full_name, phone, sms_opt_in, sms_confirmed)")
     .eq("scheduled_date", tomorrowStr)
     .eq("status", "confirmed")
     .eq("reminder_day_before_sent", false);
 
   for (const booking of dayBeforeBookings || []) {
-    const customer = booking.customer as unknown as { full_name: string; phone: string } | null;
+    const customer = booking.customer as unknown as { full_name: string; phone: string; sms_opt_in: boolean; sms_confirmed: boolean } | null;
     if (!customer?.phone) continue;
+    if (!customer.sms_opt_in || !customer.sms_confirmed) continue;
 
     const [h, m] = booking.scheduled_start.split(":").map(Number);
     const ampm = h >= 12 ? "PM" : "AM";
@@ -71,16 +73,18 @@ export async function GET(request: NextRequest) {
 
   // ---- Hour-before reminders ----
   // Send to bookings happening today within the next hour
+  // Only send to customers who opted in AND confirmed via SMS reply
   const { data: hourBeforeBookings } = await supabase
     .from("bookings")
-    .select("id, scheduled_start, customer:customers(full_name, phone)")
+    .select("id, scheduled_start, customer:customers(full_name, phone, sms_opt_in, sms_confirmed)")
     .eq("scheduled_date", today)
     .eq("status", "confirmed")
     .eq("reminder_hour_before_sent", false);
 
   for (const booking of hourBeforeBookings || []) {
-    const customer = booking.customer as unknown as { full_name: string; phone: string } | null;
+    const customer = booking.customer as unknown as { full_name: string; phone: string; sms_opt_in: boolean; sms_confirmed: boolean } | null;
     if (!customer?.phone) continue;
+    if (!customer.sms_opt_in || !customer.sms_confirmed) continue;
 
     const [bH, bM] = booking.scheduled_start.split(":").map(Number);
     const bookingMinutes = bH * 60 + bM;

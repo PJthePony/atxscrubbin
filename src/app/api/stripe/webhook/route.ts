@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
-import { sendSMS, bookingConfirmationText } from "@/lib/twilio";
+import { sendSMS, bookingConfirmationText, smsOptInText } from "@/lib/twilio";
 
 export const dynamic = "force-dynamic";
 
@@ -49,37 +49,46 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", bookingId);
 
-      // Send confirmation text
+      // Send confirmation or opt-in text based on customer SMS preferences
       const { data: booking } = await supabase
         .from("bookings")
         .select("*, customer:customers(*), car_size:car_sizes(*)")
         .eq("id", bookingId)
         .single();
 
-      if (booking?.customer?.phone) {
-        const [h, m] = booking.scheduled_start.split(":").map(Number);
-        const ampm = h >= 12 ? "PM" : "AM";
-        const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-        const timeStr = `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
+      if (booking?.customer?.phone && booking.customer.sms_opt_in) {
+        if (booking.customer.sms_confirmed) {
+          // Already confirmed — send booking confirmation text
+          const [h, m] = booking.scheduled_start.split(":").map(Number);
+          const ampm = h >= 12 ? "PM" : "AM";
+          const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+          const timeStr = `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
 
-        const dateObj = new Date(booking.scheduled_date + "T12:00:00");
-        const dateStr = dateObj.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        });
+          const dateObj = new Date(booking.scheduled_date + "T12:00:00");
+          const dateStr = dateObj.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          });
 
-        await sendSMS(
-          booking.customer.phone,
-          bookingConfirmationText({
-            customerName: booking.customer.full_name,
-            date: dateStr,
-            time: timeStr,
-            service: booking.car_size?.name || "Car Wash",
-            total: booking.total,
-            address: booking.address,
-          })
-        );
+          await sendSMS(
+            booking.customer.phone,
+            bookingConfirmationText({
+              customerName: booking.customer.full_name,
+              date: dateStr,
+              time: timeStr,
+              service: booking.car_size?.name || "Car Wash",
+              total: booking.total,
+              address: booking.address,
+            })
+          );
+        } else {
+          // New/unconfirmed number — send opt-in message instead
+          await sendSMS(
+            booking.customer.phone,
+            smsOptInText({ customerName: booking.customer.full_name })
+          );
+        }
       }
     }
   }
