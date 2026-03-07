@@ -58,7 +58,6 @@ function BookContent() {
   const [addressValidating, setAddressValidating] = useState(false);
   const [notes, setNotes] = useState("");
   const [smsOptIn, setSmsOptIn] = useState(true);
-  const [emailOptIn, setEmailOptIn] = useState(true);
 
   // Confirmation
   const [submitting, setSubmitting] = useState(false);
@@ -163,6 +162,9 @@ function BookContent() {
     }
   }, [selectedDate, totalDuration, loadSlots]);
 
+  // Track whether we're still searching for the first available date
+  const [findingDate, setFindingDate] = useState(false);
+
   // Auto-find the next available date when entering datetime step
   useEffect(() => {
     if (step !== "datetime" || selectedDate || !totalDuration) return;
@@ -170,6 +172,7 @@ function BookContent() {
     let cancelled = false;
 
     async function findNextAvailable() {
+      setFindingDate(true);
       setSlotsLoading(true);
       const today = new Date();
 
@@ -191,6 +194,7 @@ function BookContent() {
             setSelectedDate(dateStr);
             setSlots(data.slots);
             setSlotsLoading(false);
+            setFindingDate(false);
             return;
           }
         } catch {
@@ -204,6 +208,7 @@ function BookContent() {
         tmrw.setDate(tmrw.getDate() + 1);
         setSelectedDate(tmrw.toISOString().split("T")[0]);
         setSlotsLoading(false);
+        setFindingDate(false);
       }
     }
 
@@ -264,7 +269,6 @@ function BookContent() {
           customer_email: email,
           customer_phone: phone,
           sms_opt_in: smsOptIn,
-          email_opt_in: emailOptIn,
           notes,
         }),
       });
@@ -548,6 +552,13 @@ function BookContent() {
               Pick a day and we&apos;ll show you what&apos;s open.
             </p>
 
+            {findingDate ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-8 h-8 border-3 border-brown/10 border-t-orange rounded-full animate-spin mb-4" />
+                <p className="text-brown/50 text-base">Finding the next available date...</p>
+              </div>
+            ) : (
+            <>
             <div className="mb-8">
               <label className="block text-base font-bold text-brown-dark mb-2">
                 Date
@@ -567,9 +578,10 @@ function BookContent() {
                   Available Times
                 </label>
                 {slotsLoading ? (
-                  <p className="text-brown/40 text-center py-6">
-                    Loading available times...
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <div className="w-6 h-6 border-2 border-brown/10 border-t-orange rounded-full animate-spin mb-3" />
+                    <p className="text-brown/40">Loading available times...</p>
+                  </div>
                 ) : slots.length === 0 ? (
                   <div className="text-center py-6 rounded-xl bg-sand/50 border border-brown/10">
                     <p className="text-brown/50">
@@ -597,6 +609,8 @@ function BookContent() {
                   </div>
                 )}
               </div>
+            )}
+            </>
             )}
 
             <div className="flex items-center justify-between mt-8">
@@ -664,33 +678,20 @@ function BookContent() {
                   placeholder="(512) 555-1234"
                   className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition"
                 />
-                <div className="mt-3 space-y-2">
-                  <label className="flex items-start gap-2.5 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={smsOptIn}
-                      onChange={(e) => setSmsOptIn(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-brown/20 text-orange focus:ring-orange cursor-pointer accent-orange"
-                    />
-                    <span className="text-sm text-brown/70 group-hover:text-brown-dark transition">
-                      Send me text reminders about my appointment
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2.5 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={emailOptIn}
-                      onChange={(e) => setEmailOptIn(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-brown/20 text-orange focus:ring-orange cursor-pointer accent-orange"
-                    />
-                    <span className="text-sm text-brown/70 group-hover:text-brown-dark transition">
-                      Send me email reminders about my appointment
-                    </span>
-                  </label>
-                  <p className="text-xs text-brown/40 pl-6">
-                    We&apos;ll send a reminder the day before and an hour before your wash. Msg &amp; data rates may apply. Reply STOP to unsubscribe.
-                  </p>
-                </div>
+                <label className="flex items-start gap-2.5 cursor-pointer group mt-3">
+                  <input
+                    type="checkbox"
+                    checked={smsOptIn}
+                    onChange={(e) => setSmsOptIn(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-brown/20 text-orange focus:ring-orange cursor-pointer accent-orange"
+                  />
+                  <span className="text-sm text-brown/70 group-hover:text-brown-dark transition">
+                    Send me text reminders about my appointment
+                  </span>
+                </label>
+                <p className="text-xs text-brown/40 pl-6 mt-1">
+                  We&apos;ll text you the day before and an hour before your wash. Msg &amp; data rates may apply. Reply STOP to unsubscribe.
+                </p>
               </div>
               <div>
                 <label className="block text-base font-bold text-brown-dark mb-1">
