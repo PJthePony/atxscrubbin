@@ -81,6 +81,34 @@ export default function AddonsPage() {
     load();
   }
 
+  async function moveAddon(index: number, direction: "up" | "down") {
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= addons.length) return;
+
+    const a = addons[index];
+    const b = addons[swapIndex];
+
+    // Swap sort_order values; if equal, offset to ensure a real swap
+    const newAOrder = a.sort_order === b.sort_order
+      ? (direction === "up" ? a.sort_order - 1 : a.sort_order + 1)
+      : b.sort_order;
+    const newBOrder = a.sort_order === b.sort_order ? a.sort_order : a.sort_order;
+
+    await Promise.all([
+      fetch("/api/addons", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: a.id, sort_order: newAOrder }),
+      }),
+      fetch("/api/addons", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: b.id, sort_order: newBOrder }),
+      }),
+    ]);
+    load();
+  }
+
   if (loading) return <div className="text-zinc-500">Loading...</div>;
 
   return (
@@ -178,6 +206,7 @@ export default function AddonsPage() {
         <table className="w-full text-sm">
           <thead className="bg-zinc-900/80 text-left text-xs text-zinc-500">
             <tr>
+              <th className="px-3 py-3 w-16">Order</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Description</th>
               <th className="px-4 py-3">Price</th>
@@ -187,8 +216,28 @@ export default function AddonsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
-            {addons.map((a) => (
+            {addons.map((a, i) => (
               <tr key={a.id} className="hover:bg-zinc-900/40">
+                <td className="px-3 py-3">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <button
+                      onClick={() => moveAddon(i, "up")}
+                      disabled={i === 0}
+                      className="text-zinc-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition p-0.5"
+                      title="Move up"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                    </button>
+                    <button
+                      onClick={() => moveAddon(i, "down")}
+                      disabled={i === addons.length - 1}
+                      className="text-zinc-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition p-0.5"
+                      title="Move down"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-medium">{a.name}</td>
                 <td className="px-4 py-3 text-zinc-400">{a.description}</td>
                 <td className="px-4 py-3">${Number(a.price).toFixed(2)}</td>
@@ -210,7 +259,7 @@ export default function AddonsPage() {
             ))}
             {addons.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
                   No add-ons yet. Add one to get started.
                 </td>
               </tr>
