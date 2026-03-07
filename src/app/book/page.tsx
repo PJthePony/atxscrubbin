@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import GoogleMapsProvider from "@/components/GoogleMapsProvider";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 interface CarSize {
   id: string;
@@ -51,6 +53,10 @@ function BookContent() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [addressLat, setAddressLat] = useState<number | null>(null);
+  const [addressLng, setAddressLng] = useState<number | null>(null);
+  const [addressOutOfArea, setAddressOutOfArea] = useState(false);
+  const [addressValidating, setAddressValidating] = useState(false);
   const [notes, setNotes] = useState("");
 
   // Confirmation
@@ -156,6 +162,33 @@ function BookContent() {
     }
   }, [selectedDate, totalDuration, loadSlots]);
 
+  // Validate address against service area
+  const handleAddressSelect = useCallback(
+    async (formattedAddress: string, lat: number, lng: number) => {
+      setAddress(formattedAddress);
+      setAddressLat(lat);
+      setAddressLng(lng);
+      setAddressOutOfArea(false);
+      setAddressValidating(true);
+
+      try {
+        const res = await fetch("/api/booking/validate-address", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lng }),
+        });
+        const data = await res.json();
+        setAddressOutOfArea(!data.inArea);
+      } catch {
+        // If validation fails, don't block — let them proceed
+        setAddressOutOfArea(false);
+      } finally {
+        setAddressValidating(false);
+      }
+    },
+    []
+  );
+
   // Get minimum date (tomorrow)
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -174,8 +207,8 @@ function BookContent() {
           car_size_id: selectedSize!.id,
           addon_ids: selectedAddons.map((a) => a.id),
           address,
-          lat: null,
-          lng: null,
+          lat: addressLat,
+          lng: addressLng,
           scheduled_date: selectedDate,
           scheduled_start: selectedSlot!.start,
           customer_name: name,
@@ -592,16 +625,37 @@ function BookContent() {
                 <label className="block text-base font-bold text-brown-dark mb-1">
                   Address
                 </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Where should we come?"
-                  className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition"
-                />
-                <p className="text-sm text-brown/50 mt-1">
-                  Full street address in Austin, TX
-                </p>
+                <GoogleMapsProvider>
+                  <AddressAutocomplete
+                    value={address}
+                    onChange={(val) => {
+                      setAddress(val);
+                      // Clear validation if they're typing manually
+                      setAddressLat(null);
+                      setAddressLng(null);
+                      setAddressOutOfArea(false);
+                    }}
+                    onSelect={handleAddressSelect}
+                    placeholder="Where should we come?"
+                    className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition"
+                  />
+                </GoogleMapsProvider>
+                {addressValidating && (
+                  <p className="text-sm text-brown/50 mt-1">
+                    Checking service area...
+                  </p>
+                )}
+                {addressOutOfArea && !addressValidating && (
+                  <p className="text-sm text-orange mt-1">
+                    This address may be outside our service area. You can still
+                    book and we&apos;ll confirm availability.
+                  </p>
+                )}
+                {!addressOutOfArea && !addressValidating && (
+                  <p className="text-sm text-brown/50 mt-1">
+                    Start typing your address in Austin, TX
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-base font-bold text-brown-dark mb-1">
