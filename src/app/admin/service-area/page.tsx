@@ -83,7 +83,6 @@ function ServiceAreaMapPanel({
         defaultCenter={center}
         defaultZoom={11}
         gestureHandling="greedy"
-        mapId="service-area-admin"
         style={{ width: "100%", height: "100%" }}
       >
         <PolygonOverlay paths={polygon} />

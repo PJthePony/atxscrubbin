@@ -81,10 +81,9 @@ function ServiceAreaMap() {
     <div className="h-72 sm:h-96">
       <Map
         defaultCenter={center}
-        defaultZoom={11}
+        defaultZoom={13}
         gestureHandling="cooperative"
         disableDefaultUI
-        mapId="service-area-homepage"
         style={{ width: "100%", height: "100%" }}
       >
         <PolygonOverlay paths={polygon} />
