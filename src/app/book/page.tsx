@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import GoogleMapsProvider from "@/components/GoogleMapsProvider";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
@@ -326,14 +325,7 @@ function BookContent() {
       {/* Header */}
       <nav className="border-b border-brown/10 px-6 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/nav-icon.png"
-              alt="Keep Austin Scrubbin'"
-              width={36}
-              height={36}
-              className="rounded-full"
-            />
+          <Link href="/" className="flex items-center">
             <span className="text-xl font-bold text-brown-dark">
               Keep Austin <span className="text-orange">Scrubbin&apos;</span>
             </span>

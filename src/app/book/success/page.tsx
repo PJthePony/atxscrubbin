@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import Image from "next/image";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -13,14 +12,7 @@ function SuccessContent() {
     <div className="min-h-screen bg-cream">
       <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center justify-between px-6 py-3 max-w-3xl mx-auto">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/nav-icon.png"
-              alt="Keep Austin Scrubbin'"
-              width={36}
-              height={36}
-              className="rounded-full"
-            />
+          <Link href="/" className="flex items-center">
             <span className="text-2xl font-bold tracking-tight text-white">
               Keep Austin <span className="text-orange">Scrubbin&apos;</span>
             </span>
