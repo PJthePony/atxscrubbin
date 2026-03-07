@@ -113,8 +113,9 @@ export default function ServiceAreaPreview() {
         Service Area
       </h2>
       <p className="text-center text-brown/60 mb-12 max-w-lg mx-auto">
-        We&apos;re all over central Austin. If you&apos;re not sure, just try
-        booking — we&apos;ll let you know.
+        We&apos;re on bikes, so we stick to what we can reach — Highland Park,
+        Rosedale, and most of Allendale. Not sure if you&apos;re in range? Just
+        try booking and we&apos;ll let you know.
       </p>
       <div className="rounded-2xl border-2 border-brown/15 bg-sand/50 overflow-hidden">
         {API_KEY ? (
