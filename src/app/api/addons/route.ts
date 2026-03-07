@@ -79,9 +79,23 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createServerClient();
+
+    // Try hard delete first
     const { error } = await supabase.from("addons").delete().eq("id", id);
 
     if (error) {
+      // Foreign key constraint — addon was used in past bookings, deactivate instead
+      if (error.code === "23503") {
+        const { error: updateError } = await supabase
+          .from("addons")
+          .update({ active: false })
+          .eq("id", id);
+
+        if (updateError) {
+          return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+        return NextResponse.json({ success: true, deactivated: true });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true });

@@ -26,9 +26,6 @@ export default function Pricing() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Middle item gets the "popular" badge
-  const popularIndex = carSizes.length === 3 ? 1 : -1;
-
   return (
     <section id="pricing" className="px-6 py-24 max-w-5xl mx-auto">
       <h2 className="text-3xl font-bold text-center mb-3 text-brown-dark">Pricing</h2>
@@ -42,22 +39,11 @@ export default function Pricing() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {carSizes.map((size, i) => {
-            const isPopular = i === popularIndex;
-            return (
+          {carSizes.map((size) => (
               <div
                 key={size.id}
-                className={`relative rounded-2xl border-2 p-8 text-center transition ${
-                  isPopular
-                    ? "border-orange bg-orange/10 scale-[1.02]"
-                    : "border-brown/15 hover:border-brown/30"
-                }`}
+                className="rounded-2xl border-2 border-brown/15 p-8 text-center transition hover:border-brown/30"
               >
-                {isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-orange px-4 py-1 text-xs font-bold text-white">
-                    Most Popular
-                  </span>
-                )}
                 <h3 className="text-2xl font-bold mb-1 text-brown-dark">{size.name}</h3>
                 <p className="text-sm text-brown/50 mb-6">
                   {size.description || ""}
@@ -72,17 +58,12 @@ export default function Pricing() {
                 </p>
                 <Link
                   href="/book"
-                  className={`block rounded-full px-6 py-3.5 text-base font-bold transition active:scale-[0.98] ${
-                    isPopular
-                      ? "bg-orange text-white hover:bg-orange-dark"
-                      : "bg-brown-dark text-white hover:bg-brown-light"
-                  }`}
+                  className="block rounded-full px-6 py-3.5 text-base font-bold transition active:scale-[0.98] bg-brown-dark text-white hover:bg-brown-light"
                 >
                   Book Now
                 </Link>
               </div>
-            );
-          })}
+            ))}
         </div>
       )}
 

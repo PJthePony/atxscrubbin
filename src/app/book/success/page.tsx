@@ -16,13 +16,13 @@ function SuccessContent() {
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/nav-icon.png"
-              alt="ATX Scrubbin'"
+              alt="Keep Austin Scrubbin'"
               width={36}
               height={36}
               className="rounded-full"
             />
             <span className="text-2xl font-bold tracking-tight text-white">
-              ATX <span className="text-orange">Scrubbin&apos;</span>
+              Keep Austin <span className="text-orange">Scrubbin&apos;</span>
             </span>
           </Link>
         </div>

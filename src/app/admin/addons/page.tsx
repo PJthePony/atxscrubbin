@@ -73,7 +73,11 @@ export default function AddonsPage() {
 
   async function remove(id: string) {
     if (!confirm("Delete this add-on?")) return;
-    await fetch(`/api/addons?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/addons?id=${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.deactivated) {
+      alert("This add-on was used in past bookings, so it's been deactivated instead of deleted.");
+    }
     load();
   }
 

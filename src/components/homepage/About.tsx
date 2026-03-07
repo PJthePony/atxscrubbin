@@ -5,7 +5,7 @@ export default function About() {
     <section id="about" className="px-6 py-24 max-w-3xl mx-auto text-center">
       <Image
         src="/logo-color.png"
-        alt="ATX Scrubbin' mascots"
+        alt="Keep Austin Scrubbin' mascots"
         width={180}
         height={180}
         className="mx-auto mb-6"

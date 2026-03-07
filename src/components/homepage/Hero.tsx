@@ -8,7 +8,7 @@ export default function Hero() {
         <div className="relative w-[260px] h-[260px] mb-4">
           <Image
             src="/logo-color.png"
-            alt="ATX Scrubbin' mascots"
+            alt="Keep Austin Scrubbin' mascots"
             fill
             className="object-contain drop-shadow-[0_0_30px_rgba(255,160,0,0.3)]"
             priority

@@ -162,6 +162,54 @@ function BookContent() {
     }
   }, [selectedDate, totalDuration, loadSlots]);
 
+  // Auto-find the next available date when entering datetime step
+  useEffect(() => {
+    if (step !== "datetime" || selectedDate || !totalDuration) return;
+
+    let cancelled = false;
+
+    async function findNextAvailable() {
+      setSlotsLoading(true);
+      const today = new Date();
+
+      // Check up to 14 days out
+      for (let i = 1; i <= 14; i++) {
+        if (cancelled) return;
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split("T")[0];
+
+        try {
+          const res = await fetch(
+            `/api/booking/slots?date=${dateStr}&duration=${totalDuration}`
+          );
+          const data = await res.json();
+          if (cancelled) return;
+
+          if (data.slots && data.slots.length > 0) {
+            setSelectedDate(dateStr);
+            setSlots(data.slots);
+            setSlotsLoading(false);
+            return;
+          }
+        } catch {
+          // Skip this date, try next
+        }
+      }
+
+      // No slots found in 14 days — just default to tomorrow
+      if (!cancelled) {
+        const tmrw = new Date(today);
+        tmrw.setDate(tmrw.getDate() + 1);
+        setSelectedDate(tmrw.toISOString().split("T")[0]);
+        setSlotsLoading(false);
+      }
+    }
+
+    findNextAvailable();
+    return () => { cancelled = true; };
+  }, [step, selectedDate, totalDuration]);
+
   // Validate address against service area
   const handleAddressSelect = useCallback(
     async (formattedAddress: string, lat: number, lng: number) => {
@@ -281,13 +329,13 @@ function BookContent() {
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/nav-icon.png"
-              alt="ATX Scrubbin'"
+              alt="Keep Austin Scrubbin'"
               width={36}
               height={36}
               className="rounded-full"
             />
             <span className="text-xl font-bold text-brown-dark">
-              ATX <span className="text-orange">Scrubbin&apos;</span>
+              Keep Austin <span className="text-orange">Scrubbin&apos;</span>
             </span>
           </Link>
           <Link
@@ -646,12 +694,26 @@ function BookContent() {
                   </p>
                 )}
                 {addressOutOfArea && !addressValidating && (
-                  <p className="text-sm text-orange mt-1">
-                    This address may be outside our service area. You can still
-                    book and we&apos;ll confirm availability.
+                  <div className="mt-2 p-3 rounded-xl bg-red-50 border border-red-200">
+                    <p className="text-sm text-red-700 font-medium">
+                      This address is outside our service area.
+                    </p>
+                    <p className="text-sm text-red-600 mt-1">
+                      Think we got it wrong? Reach out at{" "}
+                      <a href="mailto:atxscrubbin@gmail.com" className="underline font-medium">
+                        atxscrubbin@gmail.com
+                      </a>{" "}
+                      and we&apos;ll see what we can do.
+                    </p>
+                  </div>
+                )}
+                {!addressOutOfArea && !addressValidating && addressLat && (
+                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    You&apos;re in our service area!
                   </p>
                 )}
-                {!addressOutOfArea && !addressValidating && (
+                {!addressOutOfArea && !addressValidating && !addressLat && (
                   <p className="text-sm text-brown/50 mt-1">
                     Start typing your address in Austin, TX
                   </p>
@@ -681,7 +743,7 @@ function BookContent() {
               </button>
               <button
                 onClick={() => setStep("review")}
-                disabled={!name || !email || !phone || !address}
+                disabled={!name || !email || !phone || !address || !addressLat || addressOutOfArea || addressValidating}
                 className="rounded-full bg-orange px-8 py-3.5 font-bold text-white transition hover:bg-orange-dark disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 Review &rarr;

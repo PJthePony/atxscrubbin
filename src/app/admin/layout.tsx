@@ -82,7 +82,7 @@ export default function AdminLayout({
           </svg>
         </button>
         <span className="text-base font-bold">
-          ATX <span className="text-orange">Scrubbin&apos;</span>
+          Keep Austin <span className="text-orange">Scrubbin&apos;</span>
         </span>
         <div className="w-11" />
       </div>
@@ -104,7 +104,7 @@ export default function AdminLayout({
         >
           <div className="px-5 py-5 border-b border-zinc-800">
             <Link href="/admin" className="text-lg font-bold" onClick={() => setSidebarOpen(false)}>
-              ATX <span className="text-orange">Scrubbin&apos;</span>
+              Keep Austin <span className="text-orange">Scrubbin&apos;</span>
             </Link>
             <p className="text-xs text-zinc-500 mt-0.5">Admin Panel</p>
           </div>

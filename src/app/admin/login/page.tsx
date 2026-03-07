@@ -40,7 +40,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-bold text-white text-center mb-2">
-          ATX <span className="text-orange">Scrubbin&apos;</span>
+          Keep Austin <span className="text-orange">Scrubbin&apos;</span>
         </h1>
         <p className="text-zinc-400 text-center text-sm mb-8">Admin Login</p>
 

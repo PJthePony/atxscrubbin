@@ -53,7 +53,7 @@ export function bookingConfirmationText(data: {
   total: number;
   address: string;
 }) {
-  return `Hey ${data.customerName}! 🤠 Your car wash is booked!\n\n📅 ${data.date} at ${data.time}\n🚗 ${data.service}\n📍 ${data.address}\n💰 $${data.total}\n\nWe'll text you a reminder the day before. See ya! — ATX Scrubbin'`;
+  return `Hey ${data.customerName}! 🤠 Your car wash is booked!\n\n📅 ${data.date} at ${data.time}\n🚗 ${data.service}\n📍 ${data.address}\n💰 $${data.total}\n\nWe'll text you a reminder the day before. See ya! — Keep Austin Scrubbin'`;
 }
 
 export function dayBeforeReminderText(data: {
@@ -61,18 +61,18 @@ export function dayBeforeReminderText(data: {
   time: string;
   address: string;
 }) {
-  return `Hey ${data.customerName}! Just a heads up — we'll be at ${data.address} tomorrow at ${data.time}. Make sure your car is accessible and we'll handle the rest! 🧽 — ATX Scrubbin'`;
+  return `Hey ${data.customerName}! Just a heads up — we'll be at ${data.address} tomorrow at ${data.time}. Make sure your car is accessible and we'll handle the rest! 🧽 — Keep Austin Scrubbin'`;
 }
 
 export function hourBeforeReminderText(data: {
   customerName: string;
   time: string;
 }) {
-  return `${data.customerName} — we're heading your way! See you at ${data.time}. 🤠 — ATX Scrubbin'`;
+  return `${data.customerName} — we're heading your way! See you at ${data.time}. 🤠 — Keep Austin Scrubbin'`;
 }
 
 export function completionText(data: {
   customerName: string;
 }) {
-  return `All done, ${data.customerName}! Your ride is looking fresh. ✨ Thanks for choosing ATX Scrubbin'! Hope to see you again soon. 🤝`;
+  return `All done, ${data.customerName}! Your ride is looking fresh. ✨ Thanks for choosing Keep Austin Scrubbin'! Hope to see you again soon. 🤝`;
 }
