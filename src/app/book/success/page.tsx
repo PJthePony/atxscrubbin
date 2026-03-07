@@ -36,6 +36,11 @@ function SuccessContent() {
           </p>
         )}
 
+        <p className="text-sm text-brown/50 mb-8 max-w-md mx-auto flex items-start gap-2 text-left">
+          <span>💡</span>
+          <span>Make sure your hose bib and an outdoor outlet are accessible — we&apos;ll need both on wash day.</span>
+        </p>
+
         <div className="flex flex-col sm:flex-row justify-center gap-4 px-2 sm:px-0">
           <Link
             href="/account"

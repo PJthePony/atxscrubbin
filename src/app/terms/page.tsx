@@ -103,6 +103,8 @@ export default function TermsPage() {
             <h2 className="text-xl font-serif font-bold text-brown-dark mt-8 mb-3">6. Your Responsibilities</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>Ensure the vehicle is accessible at the scheduled time and address.</li>
+              <li>Provide access to an outdoor water source (hose bib) for use during the wash.</li>
+              <li>Provide access to an outdoor electrical outlet for our equipment.</li>
               <li>Provide accurate contact information so we can reach you regarding your appointment.</li>
               <li>Remove any valuables from the exterior of the vehicle before your appointment.</li>
             </ul>

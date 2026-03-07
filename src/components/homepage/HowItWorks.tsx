@@ -18,7 +18,7 @@ const steps = [
   {
     step: "3",
     title: "We Come to You",
-    desc: "We roll up, scrub it down, and leave your car looking fresh.",
+    desc: "We roll up, hook into your hose and outdoor outlet, and leave your car looking fresh.",
     image: "/step-pick.png",
     alt: "Cowboy sponge and spray bottle riding bikes",
   },

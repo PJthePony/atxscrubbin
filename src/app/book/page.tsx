@@ -718,11 +718,16 @@ function BookContent() {
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Anything we should know? Gate code, special requests, etc."
+                  placeholder="Gate code, hose bib location, outdoor outlet location, etc."
                   rows={3}
                   className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3 text-brown-dark placeholder:text-brown/30 focus:border-orange focus:outline-none transition resize-none"
                 />
               </div>
+
+              <p className="text-sm text-brown/50 flex items-start gap-2">
+                <span>💡</span>
+                <span>We&apos;ll need access to a hose bib and an outdoor electrical outlet at your location.</span>
+              </p>
             </div>
 
             <div className="flex items-center justify-between mt-8">
