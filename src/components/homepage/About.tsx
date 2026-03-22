@@ -10,15 +10,14 @@ export default function About() {
         height={180}
         className="mx-auto mb-6"
       />
-      <h2 className="text-3xl font-bold mb-6 text-brown-dark">Meet Carter &amp; Augie</h2>
+      <h2 className="text-3xl font-bold mb-6 text-brown-dark">Meet Carter, Augie &amp; Tucker</h2>
       <p className="text-brown/60 text-lg leading-relaxed mb-4">
-        Just two dudes who&apos;d rather be outside washing cars than sitting in a classroom.
-        We bring the soap, towels, and good vibes — all we need from you is a hose bib and an outdoor outlet.
-        Park it in the driveway and we&apos;ll handle the rest.
+        Just three guys who take pride in making your car look its best.
+        We bring the supplies, the energy, and the attention to detail.
+        You just provide a hose bib and an outlet.
       </p>
       <p className="text-brown/60 text-lg leading-relaxed">
-        Every wash is done by hand. No machines, no shortcuts.
-        We actually care about doing it right. 🤝
+        Every wash is done by hand with the right tools. No shortcuts, just care. 🤝
       </p>
     </section>
   );
