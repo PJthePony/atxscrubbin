@@ -5,18 +5,18 @@ export default function Hero() {
   return (
     <section className="bg-navy">
       <div className="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16 max-w-4xl mx-auto">
-        <div className="relative w-[200px] h-[240px] sm:w-[240px] sm:h-[280px] mb-2">
+        <div className="relative w-[240px] h-[280px] sm:w-[300px] sm:h-[340px] -mb-6">
           <Image
             src="/logo-color.png"
             alt="Keep Austin Scrubbin' mascots"
             fill
-            className="object-contain drop-shadow-[0_0_30px_rgba(255,160,0,0.3)]"
+            className="object-contain"
             priority
           />
         </div>
         <h1 className="text-4xl font-bold tracking-tight leading-tight sm:text-6xl text-white">
           We scrub so you{" "}
-          <span className="text-orange italic">don&apos;t have to.</span>
+          <span className="text-orange">don&apos;t have to.</span>
         </h1>
         <p className="mt-2 text-lg text-white/60 max-w-md">
           Mobile car wash that comes to your driveway. Austin, TX.
