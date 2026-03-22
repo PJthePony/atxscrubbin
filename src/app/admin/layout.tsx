@@ -91,7 +91,7 @@ export default function AdminLayout({
         {/* Sidebar overlay (mobile) */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            className="fixed inset-0 bg-navy/60 z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

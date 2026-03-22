@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="bg-black">
+    <section className="bg-navy">
       <div className="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16 max-w-4xl mx-auto">
         <div className="relative w-[260px] h-[260px] mb-4">
           <Image
@@ -27,7 +27,7 @@ export default function Hero() {
         <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-2 sm:px-0">
           <Link
             href="/book"
-            className="rounded-full bg-orange px-8 py-4 text-lg font-bold text-black text-center transition hover:bg-orange-dark hover:scale-105 active:scale-[0.98]"
+            className="rounded-full bg-orange px-8 py-4 text-lg font-bold text-navy text-center transition hover:bg-orange-dark hover:scale-105 active:scale-[0.98]"
           >
             Book a Wash
           </Link>

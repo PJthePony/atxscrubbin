@@ -227,7 +227,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
-      <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
+      <nav className="sticky top-0 z-50 bg-navy/95 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center justify-between px-6 py-3 max-w-3xl mx-auto">
           <Link href="/" className="flex items-center">
             <span className="text-2xl font-bold tracking-tight text-white">
@@ -243,7 +243,7 @@ export default function AccountPage() {
             </Link>
             <Link
               href="/book"
-              className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-black transition hover:bg-orange-dark"
+              className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-navy transition hover:bg-orange-dark"
             >
               Book a Wash
             </Link>

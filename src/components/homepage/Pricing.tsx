@@ -27,7 +27,7 @@ export default function Pricing() {
   }, []);
 
   return (
-    <section id="pricing" className="px-6 py-24 bg-black">
+    <section id="pricing" className="px-6 py-24 bg-navy">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-3 text-white">Pricing</h2>
         <p className="text-center text-white/50 mb-16 max-w-lg mx-auto">
@@ -59,7 +59,7 @@ export default function Pricing() {
                   </p>
                   <Link
                     href="/book"
-                    className="block rounded-full px-6 py-3.5 text-base font-bold transition active:scale-[0.98] bg-orange text-black hover:bg-orange-dark hover:scale-105"
+                    className="block rounded-full px-6 py-3.5 text-base font-bold transition active:scale-[0.98] bg-orange text-navy hover:bg-orange-dark hover:scale-105"
                   >
                     Book Now
                   </Link>

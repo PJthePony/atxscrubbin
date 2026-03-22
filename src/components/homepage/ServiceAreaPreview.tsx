@@ -24,9 +24,9 @@ function PolygonOverlay({ paths }: { paths: google.maps.LatLngLiteral[] }) {
 
     polygonRef.current = new google.maps.Polygon({
       paths,
-      fillColor: "#FFA000",
+      fillColor: "#E06030",
       fillOpacity: 0.15,
-      strokeColor: "#FFA000",
+      strokeColor: "#E06030",
       strokeOpacity: 0.8,
       strokeWeight: 2,
       map,

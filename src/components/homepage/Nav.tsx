@@ -7,7 +7,7 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
+    <nav className="sticky top-0 z-50 bg-navy/95 backdrop-blur-sm border-b border-white/10">
       <div className="flex items-center justify-between px-6 py-3 max-w-6xl mx-auto">
         <Link href="/" className="flex items-center">
           <span className="text-2xl font-bold tracking-tight text-white">
@@ -37,7 +37,7 @@ export default function Nav() {
           </Link>
           <Link
             href="/book"
-            className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-black transition hover:bg-orange-dark"
+            className="rounded-full bg-orange px-6 py-2.5 text-base font-bold text-navy transition hover:bg-orange-dark"
           >
             Book a Wash
           </Link>
@@ -61,7 +61,7 @@ export default function Nav() {
 
       {/* Mobile menu — larger touch targets, better spacing */}
       {menuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-black px-6 py-3">
+        <div className="md:hidden border-t border-white/10 bg-navy px-6 py-3">
           <div className="space-y-1">
             <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="block py-3 text-lg text-white/70 hover:text-white active:text-orange transition">
               How It Works
@@ -86,7 +86,7 @@ export default function Nav() {
             <Link
               href="/book"
               onClick={() => setMenuOpen(false)}
-              className="block rounded-full bg-orange px-6 py-3.5 text-lg font-bold text-black text-center transition hover:bg-orange-dark active:scale-[0.98]"
+              className="block rounded-full bg-orange px-6 py-3.5 text-lg font-bold text-navy text-center transition hover:bg-orange-dark active:scale-[0.98]"
             >
               Book a Wash
             </Link>

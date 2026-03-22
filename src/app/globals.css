@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F0F0F0;
-  --foreground: #000000;
-  --orange: #FFA000;
-  --orange-dark: #BB6800;
-  --brown: #1a1a1a;
-  --brown-light: #424242;
-  --brown-dark: #000000;
-  --cream: #F0F0F0;
-  --sand: #E0E0E0;
+  --background: #F5E6D3;
+  --foreground: #333333;
+  --orange: #E06030;
+  --orange-dark: #C04A20;
+  --brown: #333333;
+  --brown-light: #555555;
+  --brown-medium: #6B5D50;
+  --brown-dark: #222222;
+  --navy: #0A0E1A;
+  --cream: #F5E6D3;
+  --sand: #E8D5C0;
 }
 
 @theme inline {
@@ -19,7 +21,9 @@
   --color-orange-dark: var(--orange-dark);
   --color-brown: var(--brown);
   --color-brown-light: var(--brown-light);
+  --color-brown-medium: var(--brown-medium);
   --color-brown-dark: var(--brown-dark);
+  --color-navy: var(--navy);
   --color-cream: var(--cream);
   --color-sand: var(--sand);
   --font-sans: "Tinos", serif;
