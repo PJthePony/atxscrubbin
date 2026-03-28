@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
         booking_team_members(*, team_member:team_members(id, display_name))
       `
       )
-      .order("scheduled_date", { ascending: true })
-      .order("scheduled_start", { ascending: true });
+      .order("scheduled_date", { ascending: false })
+      .order("scheduled_start", { ascending: false });
 
     if (status) {
       query = query.eq("status", status);

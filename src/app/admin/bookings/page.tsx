@@ -14,6 +14,7 @@ interface BookingRow {
   total: number;
   status: string;
   stripe_payment_intent_id: string | null;
+  stripe_refund_id: string | null;
   created_at: string;
   customer: {
     full_name: string;
@@ -170,6 +171,36 @@ export default function BookingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     });
+    loadBookings();
+  };
+
+  const cancelBooking = async (booking: BookingRow) => {
+    const hasPayment = !!booking.stripe_payment_intent_id;
+    const msg = hasPayment
+      ? "Cancel this booking and issue a refund?"
+      : "Cancel this booking?";
+    if (!confirm(msg)) return;
+
+    // Cancel the booking
+    await fetch("/api/admin/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: booking.id, status: "cancelled" }),
+    });
+
+    // Auto-refund if there's a Stripe payment
+    if (hasPayment) {
+      const res = await fetch("/api/admin/bookings/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: booking.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Booking cancelled but refund failed");
+      }
+    }
+
     loadBookings();
   };
 
@@ -709,6 +740,29 @@ export default function BookingsPage() {
                       </div>
                     )}
 
+                    {/* Stripe info */}
+                    {booking.stripe_payment_intent_id && (
+                      <div className="text-sm">
+                        <p className="text-zinc-500 mb-1">Payment</p>
+                        <div className="bg-zinc-800 rounded-lg px-3 py-2 space-y-1">
+                          <p>
+                            <span className="text-zinc-400">Stripe ID: </span>
+                            <code className="text-xs text-zinc-300">
+                              {booking.stripe_payment_intent_id}
+                            </code>
+                          </p>
+                          {booking.stripe_refund_id && (
+                            <p>
+                              <span className="text-zinc-400">Refund ID: </span>
+                              <code className="text-xs text-zinc-300">
+                                {booking.stripe_refund_id}
+                              </code>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Text customer */}
                     <div className="pt-2 border-t border-zinc-800">
                       {textingId === booking.id ? (
@@ -778,12 +832,10 @@ export default function BookingsPage() {
                       {(booking.status === "confirmed" ||
                         booking.status === "in_progress") && (
                         <button
-                          onClick={() =>
-                            updateStatus(booking.id, "cancelled")
-                          }
+                          onClick={() => cancelBooking(booking)}
                           className="rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-600 active:scale-[0.98] transition"
                         >
-                          Cancel
+                          Cancel{booking.stripe_payment_intent_id ? " & Refund" : ""}
                         </button>
                       )}
                       {booking.status === "completed" && (
@@ -802,19 +854,9 @@ export default function BookingsPage() {
                         </>
                       )}
                       {booking.status === "cancelled" && (
-                        <>
-                          <span className="text-sm text-zinc-500">
-                            Cancelled
-                          </span>
-                          {booking.stripe_payment_intent_id && (
-                            <button
-                              onClick={() => refundBooking(booking.id)}
-                              className="rounded-lg bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600 active:scale-[0.98] transition"
-                            >
-                              Refund
-                            </button>
-                          )}
-                        </>
+                        <span className="text-sm text-zinc-500">
+                          Cancelled
+                        </span>
                       )}
 
                       {/* Edit & Delete — always available */}
