@@ -54,7 +54,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ myDates, teamCounts });
+    // Get booking counts per date for the range
+    let bookingQuery = supabase
+      .from("bookings")
+      .select("scheduled_date")
+      .not("status", "in", '("cancelled","refunded")');
+
+    if (from) bookingQuery = bookingQuery.gte("scheduled_date", from);
+    if (to) bookingQuery = bookingQuery.lte("scheduled_date", to);
+
+    const { data: bookingRows } = await bookingQuery;
+
+    const bookingCounts: Record<string, number> = {};
+    for (const row of bookingRows || []) {
+      const dateStr =
+        typeof row.scheduled_date === "string"
+          ? row.scheduled_date.substring(0, 10)
+          : row.scheduled_date;
+      bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
+    }
+
+    return NextResponse.json({ myDates, teamCounts, bookingCounts });
   });
 }
 

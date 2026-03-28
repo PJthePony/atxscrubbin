@@ -39,6 +39,7 @@ export default function AvailabilityPage() {
   const [selectedMember, setSelectedMember] = useState<string>("");
   const [myDates, setMyDates] = useState<Set<string>>(new Set());
   const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
+  const [bookingCounts, setBookingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -59,6 +60,7 @@ export default function AvailabilityPage() {
         const data = await res.json();
         setMyDates(new Set(data.myDates as string[]));
         setTeamCounts(data.teamCounts as Record<string, number>);
+        setBookingCounts(data.bookingCounts as Record<string, number>);
       }
     },
     [today]
@@ -190,6 +192,12 @@ export default function AvailabilityPage() {
           </span>
           <span>1 crew = need one more</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+            1
+          </span>
+          <span>Wash booked</span>
+        </div>
       </div>
 
       {/* Calendar */}
@@ -238,6 +246,7 @@ export default function AvailabilityPage() {
             const isToday = dateStr === todayStr;
             const isAvail = myDates.has(dateStr);
             const count = teamCounts[dateStr] || 0;
+            const bookings = bookingCounts[dateStr] || 0;
             const isSaving = saving === dateStr;
 
             return (
@@ -273,6 +282,11 @@ export default function AvailabilityPage() {
                 >
                   {day.getDate()}
                 </span>
+                {bookings > 0 && (
+                  <span className="absolute bottom-1 left-1 text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center leading-none bg-blue-500 text-white">
+                    {bookings}
+                  </span>
+                )}
                 {count > 0 && (
                   <span
                     className={[

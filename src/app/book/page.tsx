@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import GoogleMapsProvider from "@/components/GoogleMapsProvider";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 interface CarSize {
   id: string;
@@ -162,59 +168,55 @@ function BookContent() {
     }
   }, [selectedDate, totalDuration, loadSlots]);
 
-  // Track whether we're still searching for the first available date
-  const [findingDate, setFindingDate] = useState(false);
+  // Calendar state for date picker
+  const now = useMemo(() => new Date(), []);
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth());
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [loadingDates, setLoadingDates] = useState(false);
 
-  // Auto-find the next available date when entering datetime step
+
+
+  // Fetch which dates have availability when entering datetime step
   useEffect(() => {
-    if (step !== "datetime" || selectedDate || !totalDuration) return;
-
+    if (step !== "datetime") return;
     let cancelled = false;
 
-    async function findNextAvailable() {
-      setFindingDate(true);
-      setSlotsLoading(true);
+    async function fetchAvailableDates() {
+      setLoadingDates(true);
       const today = new Date();
+      const from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate() + 1).padStart(2, "0")}`;
+      // Fetch 3 months ahead
+      const toDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+      const to = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, "0")}-${String(toDate.getDate()).padStart(2, "0")}`;
 
-      // Check up to 14 days out
-      for (let i = 1; i <= 14; i++) {
-        if (cancelled) return;
-        const d = new Date(today);
-        d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().split("T")[0];
-
-        try {
-          const res = await fetch(
-            `/api/booking/slots?date=${dateStr}&duration=${totalDuration}`
-          );
+      try {
+        const res = await fetch(`/api/booking/available-dates?from=${from}&to=${to}`);
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (cancelled) return;
+          const dates = new Set<string>(data.availableDates || []);
+          setAvailableDates(dates);
 
-          if (data.slots && data.slots.length > 0) {
-            setSelectedDate(dateStr);
-            setSlots(data.slots);
-            setSlotsLoading(false);
-            setFindingDate(false);
-            return;
+          // Auto-select the first available date if none selected
+          if (!selectedDate && dates.size > 0) {
+            const sorted = Array.from(dates).sort();
+            setSelectedDate(sorted[0]);
+            // Navigate calendar to that month
+            const firstDate = new Date(sorted[0] + "T12:00:00");
+            setCalYear(firstDate.getFullYear());
+            setCalMonth(firstDate.getMonth());
           }
-        } catch {
-          // Skip this date, try next
         }
-      }
-
-      // No slots found in 14 days — just default to tomorrow
-      if (!cancelled) {
-        const tmrw = new Date(today);
-        tmrw.setDate(tmrw.getDate() + 1);
-        setSelectedDate(tmrw.toISOString().split("T")[0]);
-        setSlotsLoading(false);
-        setFindingDate(false);
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoadingDates(false);
       }
     }
 
-    findNextAvailable();
+    fetchAvailableDates();
     return () => { cancelled = true; };
-  }, [step, selectedDate, totalDuration]);
+  }, [step, selectedDate]);
 
   // Validate address against service area
   const handleAddressSelect = useCallback(
@@ -242,11 +244,6 @@ function BookContent() {
     },
     []
   );
-
-  // Get minimum date (tomorrow)
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split("T")[0];
 
   // Submit booking — redirect to Stripe Checkout
   const handleSubmit = async () => {
@@ -552,10 +549,10 @@ function BookContent() {
               Pick a day and we&apos;ll show you what&apos;s open.
             </p>
 
-            {findingDate ? (
+            {loadingDates ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="w-8 h-8 border-3 border-brown/10 border-t-orange rounded-full animate-spin mb-4" />
-                <p className="text-brown/50 text-base">Finding the next available date...</p>
+                <p className="text-brown/50 text-base">Finding available dates...</p>
               </div>
             ) : (
             <>
@@ -563,13 +560,118 @@ function BookContent() {
               <label className="block text-base font-bold text-brown-dark mb-2">
                 Date
               </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                min={minDate}
-                className="w-full rounded-xl border-2 border-brown/10 bg-white px-4 py-3.5 text-brown-dark text-base focus:border-orange focus:outline-none transition"
-              />
+
+              {/* Custom calendar */}
+              <div className="rounded-2xl border-2 border-brown/10 bg-white overflow-hidden">
+                {/* Month nav */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-brown/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
+                      else setCalMonth(m => m - 1);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-lg text-brown/40 hover:text-brown-dark hover:bg-brown/5 transition"
+                  >
+                    &#8249;
+                  </button>
+                  <span className="text-base font-bold text-brown-dark">
+                    {MONTH_NAMES[calMonth]} {calYear}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
+                      else setCalMonth(m => m + 1);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-lg text-brown/40 hover:text-brown-dark hover:bg-brown/5 transition"
+                  >
+                    &#8250;
+                  </button>
+                </div>
+
+                {/* Day-of-week headers */}
+                <div className="grid grid-cols-7 border-b border-brown/5">
+                  {DAY_HEADERS.map(d => (
+                    <div key={d} className="text-center text-xs text-brown/40 py-2 font-medium">
+                      {d}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Days grid */}
+                <div className="grid grid-cols-7">
+                  {(() => {
+                    const days: Date[] = [];
+                    const d = new Date(calYear, calMonth, 1);
+                    while (d.getMonth() === calMonth) {
+                      days.push(new Date(d));
+                      d.setDate(d.getDate() + 1);
+                    }
+                    const firstDow = days[0].getDay();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+                    return (
+                      <>
+                        {Array.from({ length: firstDow }).map((_, i) => (
+                          <div key={`pad-${i}`} className="aspect-square" />
+                        ))}
+                        {days.map(day => {
+                          const y = day.getFullYear();
+                          const m = String(day.getMonth() + 1).padStart(2, "0");
+                          const dd = String(day.getDate()).padStart(2, "0");
+                          const dateStr = `${y}-${m}-${dd}`;
+                          const isPast = dateStr <= todayStr;
+                          const isSelected = dateStr === selectedDate;
+                          const hasAvailability = availableDates.has(dateStr);
+
+                          return (
+                            <button
+                              key={dateStr}
+                              type="button"
+                              disabled={isPast || !hasAvailability}
+                              onClick={() => {
+                                setSelectedDate(dateStr);
+                                setSelectedSlot(null);
+                              }}
+                              className={[
+                                "relative aspect-square flex items-center justify-center text-sm font-medium transition select-none",
+                                isPast
+                                  ? "text-brown/15 cursor-not-allowed"
+                                  : !hasAvailability
+                                  ? "text-brown/25 cursor-not-allowed"
+                                  : isSelected
+                                  ? "bg-orange text-white font-bold rounded-xl"
+                                  : "text-brown-dark hover:bg-orange/10 rounded-xl cursor-pointer",
+                                hasAvailability && !isSelected && !isPast
+                                  ? "font-bold"
+                                  : "",
+                              ].filter(Boolean).join(" ")}
+                            >
+                              {day.getDate()}
+                              {hasAvailability && !isPast && !isSelected && (
+                                <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-orange" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-6 px-4 py-2.5 border-t border-brown/5 text-xs text-brown/40">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange" />
+                    Available
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-brown/15" />
+                    Unavailable
+                  </span>
+                </div>
+              </div>
             </div>
 
             {selectedDate && (
