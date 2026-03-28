@@ -178,45 +178,38 @@ function BookContent() {
 
 
   // Fetch which dates have availability when entering datetime step
+  const [datesFetched, setDatesFetched] = useState(false);
   useEffect(() => {
-    if (step !== "datetime") return;
-    let cancelled = false;
+    if (step !== "datetime" || datesFetched) return;
+    setDatesFetched(true);
+    setLoadingDates(true);
 
-    async function fetchAvailableDates() {
-      setLoadingDates(true);
-      const today = new Date();
-      const from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate() + 1).padStart(2, "0")}`;
-      // Fetch 3 months ahead
-      const toDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
-      const to = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, "0")}-${String(toDate.getDate()).padStart(2, "0")}`;
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const from = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    // Fetch 6 months ahead
+    const toDate = new Date(today.getFullYear(), today.getMonth() + 7, 0);
+    const to = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, "0")}-${String(toDate.getDate()).padStart(2, "0")}`;
 
-      try {
-        const res = await fetch(`/api/booking/available-dates?from=${from}&to=${to}`);
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          const dates = new Set<string>(data.availableDates || []);
-          setAvailableDates(dates);
+    fetch(`/api/booking/available-dates?from=${from}&to=${to}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!data) return;
+        const dates = new Set<string>(data.availableDates || []);
+        setAvailableDates(dates);
 
-          // Auto-select the first available date if none selected
-          if (!selectedDate && dates.size > 0) {
-            const sorted = Array.from(dates).sort();
-            setSelectedDate(sorted[0]);
-            // Navigate calendar to that month
-            const firstDate = new Date(sorted[0] + "T12:00:00");
-            setCalYear(firstDate.getFullYear());
-            setCalMonth(firstDate.getMonth());
-          }
+        if (dates.size > 0) {
+          const sorted = Array.from(dates).sort();
+          setSelectedDate(sorted[0]);
+          const firstDate = new Date(sorted[0] + "T12:00:00");
+          setCalYear(firstDate.getFullYear());
+          setCalMonth(firstDate.getMonth());
         }
-      } catch {
-        // ignore
-      } finally {
-        if (!cancelled) setLoadingDates(false);
-      }
-    }
-
-    fetchAvailableDates();
-    return () => { cancelled = true; };
-  }, [step, selectedDate]);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingDates(false));
+  }, [step, datesFetched]);
 
   // Validate address against service area
   const handleAddressSelect = useCallback(
@@ -614,7 +607,7 @@ function BookContent() {
                     return (
                       <>
                         {Array.from({ length: firstDow }).map((_, i) => (
-                          <div key={`pad-${i}`} className="aspect-square" />
+                          <div key={`pad-${i}`} className="h-10" />
                         ))}
                         {days.map(day => {
                           const y = day.getFullYear();
@@ -635,23 +628,17 @@ function BookContent() {
                                 setSelectedSlot(null);
                               }}
                               className={[
-                                "relative aspect-square flex items-center justify-center text-sm font-medium transition select-none",
+                                "relative h-10 flex items-center justify-center text-sm font-medium transition select-none",
                                 isPast
                                   ? "text-brown/15 cursor-not-allowed"
                                   : !hasAvailability
                                   ? "text-brown/25 cursor-not-allowed"
                                   : isSelected
                                   ? "bg-orange text-white font-bold rounded-xl"
-                                  : "text-brown-dark hover:bg-orange/10 rounded-xl cursor-pointer",
-                                hasAvailability && !isSelected && !isPast
-                                  ? "font-bold"
-                                  : "",
+                                  : "bg-orange/15 text-orange font-bold rounded-xl cursor-pointer hover:bg-orange/25",
                               ].filter(Boolean).join(" ")}
                             >
                               {day.getDate()}
-                              {hasAvailability && !isPast && !isSelected && (
-                                <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-orange" />
-                              )}
                             </button>
                           );
                         })}
@@ -663,11 +650,11 @@ function BookContent() {
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-6 px-4 py-2.5 border-t border-brown/5 text-xs text-brown/40">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange" />
+                    <span className="w-4 h-4 rounded bg-orange/15 border border-orange/30" />
                     Available
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-brown/15" />
+                    <span className="w-4 h-4 rounded bg-brown/5 border border-brown/10" />
                     Unavailable
                   </span>
                 </div>
