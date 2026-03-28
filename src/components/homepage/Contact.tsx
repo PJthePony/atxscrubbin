@@ -7,11 +7,11 @@ export default function Contact() {
       </p>
       <div className="flex justify-center">
         <a
-          href="mailto:keepaustinscrubbin@gmail.com"
+          href="mailto:keep.austin.scrubbin@gmail.com"
           className="flex items-center justify-center gap-3 rounded-2xl border-2 border-brown/15 px-8 py-5 transition hover:border-orange active:bg-orange/5 w-full sm:w-auto"
         >
           <span className="text-xl">✉️</span>
-          <span className="text-brown/70 text-base sm:text-lg">keepaustinscrubbin@gmail.com</span>
+          <span className="text-brown/70 text-base sm:text-lg">keep.austin.scrubbin@gmail.com</span>
         </a>
       </div>
     </section>
