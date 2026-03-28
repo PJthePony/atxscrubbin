@@ -84,6 +84,7 @@ const EMPTY_FORM: BookingForm = {
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -295,6 +296,17 @@ export default function BookingsPage() {
     });
   };
 
+  const filteredBookings = searchQuery
+    ? bookings.filter((b) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          b.customer?.full_name?.toLowerCase().includes(q) ||
+          b.customer?.email?.toLowerCase().includes(q) ||
+          b.customer?.phone?.includes(q)
+        );
+      })
+    : bookings;
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -311,6 +323,28 @@ export default function BookingsPage() {
           >
             + New Booking
           </button>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search name, email, phone..."
+              className="rounded-lg border border-zinc-700 bg-zinc-800 pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-500 min-h-[44px] w-56"
+            />
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -551,14 +585,14 @@ export default function BookingsPage() {
 
       {loading ? (
         <p className="text-zinc-500 text-center py-12">Loading...</p>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center text-zinc-500">
           No bookings found.{" "}
-          {(statusFilter || dateFilter) && "Try adjusting your filters."}
+          {(statusFilter || dateFilter || searchQuery) && "Try adjusting your filters."}
         </div>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => {
+          {filteredBookings.map((booking) => {
             const expanded = expandedId === booking.id;
             return (
               <div
