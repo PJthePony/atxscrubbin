@@ -471,7 +471,7 @@ function BookContent() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div
-                            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition ${
+                            className={`w-6 h-6 min-w-[1.5rem] shrink-0 rounded-md border-2 flex items-center justify-center transition ${
                               isSelected
                                 ? "bg-orange border-orange text-white"
                                 : "border-brown/20"
@@ -505,7 +505,7 @@ function BookContent() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-lg font-bold text-brown-dark">
+                        <div className="text-lg font-bold text-brown-dark shrink-0 ml-3">
                           +${addon.price}
                         </div>
                       </div>
@@ -634,8 +634,8 @@ function BookContent() {
                                   : !hasAvailability
                                   ? "text-brown/25 cursor-not-allowed"
                                   : isSelected
-                                  ? "bg-orange text-white font-bold rounded-xl"
-                                  : "bg-orange/15 text-orange font-bold rounded-xl cursor-pointer hover:bg-orange/25",
+                                  ? "bg-orange text-white font-bold"
+                                  : "bg-orange/15 text-orange font-bold cursor-pointer hover:bg-orange/25",
                               ].filter(Boolean).join(" ")}
                             >
                               {day.getDate()}
