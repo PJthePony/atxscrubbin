@@ -4,73 +4,64 @@ import { withAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
-// GET availability for a team member (or all)
+// GET availability for a date range
+// Returns myDates (dates the given member is available) and teamCounts (all active members per date)
 export async function GET(request: NextRequest) {
   return withAdmin(async () => {
     const { searchParams } = new URL(request.url);
     const memberId = searchParams.get("member_id");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
 
     const supabase = createServerClient();
 
-    // Get recurring availability
-    let availQuery = supabase.from("availability").select("*").order("day_of_week");
-    if (memberId) availQuery = availQuery.eq("team_member_id", memberId);
-    const { data: availability, error: availError } = await availQuery;
+    // Get active team member IDs
+    const { data: activeMembers } = await supabase
+      .from("team_members")
+      .select("id")
+      .eq("active", true);
 
-    if (availError) {
-      return NextResponse.json({ error: availError.message }, { status: 500 });
+    const activeMemberIds = (activeMembers || []).map((m) => m.id);
+    if (activeMemberIds.length === 0) {
+      return NextResponse.json({ myDates: [], teamCounts: {} });
     }
 
-    // Get overrides
-    let overrideQuery = supabase.from("availability_overrides").select("*").order("date");
-    if (memberId) overrideQuery = overrideQuery.eq("team_member_id", memberId);
-    const { data: overrides, error: overrideError } = await overrideQuery;
+    // Query all availability_overrides with available=true for the date range
+    let query = supabase
+      .from("availability_overrides")
+      .select("team_member_id, date")
+      .eq("available", true)
+      .in("team_member_id", activeMemberIds);
 
-    if (overrideError) {
-      return NextResponse.json({ error: overrideError.message }, { status: 500 });
-    }
+    if (from) query = query.gte("date", from);
+    if (to) query = query.lte("date", to);
 
-    return NextResponse.json({ availability, overrides });
-  });
-}
-
-// POST — set recurring availability for a team member
-export async function POST(request: NextRequest) {
-  return withAdmin(async () => {
-    const body = await request.json();
-
-    if (!body.team_member_id || body.day_of_week === undefined) {
-      return NextResponse.json(
-        { error: "team_member_id and day_of_week are required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createServerClient();
-    const { data, error } = await supabase
-      .from("availability")
-      .upsert(
-        {
-          team_member_id: body.team_member_id,
-          day_of_week: body.day_of_week,
-          start_time: body.start_time || "10:00",
-          end_time: body.end_time || "16:00",
-          active: body.active ?? true,
-        },
-        { onConflict: "team_member_id,day_of_week" }
-      )
-      .select()
-      .single();
+    const { data: overrides, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json(data);
+
+    const myDates: string[] = [];
+    const teamCounts: Record<string, number> = {};
+
+    for (const row of overrides || []) {
+      const dateStr =
+        typeof row.date === "string" ? row.date.substring(0, 10) : row.date;
+      teamCounts[dateStr] = (teamCounts[dateStr] || 0) + 1;
+      if (memberId && row.team_member_id === memberId) {
+        myDates.push(dateStr);
+      }
+    }
+
+    return NextResponse.json({ myDates, teamCounts });
   });
 }
 
-// PUT — set/update a date override
-export async function PUT(request: NextRequest) {
+// POST — toggle a specific date on or off for a team member
+// available=true: upsert with 11:00–16:00
+// available=false: delete the record
+export async function POST(request: NextRequest) {
   return withAdmin(async () => {
     const body = await request.json();
 
@@ -82,15 +73,30 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = createServerClient();
+
+    if (body.available === false) {
+      const { error } = await supabase
+        .from("availability_overrides")
+        .delete()
+        .eq("team_member_id", body.team_member_id)
+        .eq("date", body.date);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // available=true — upsert with fixed 11:00–16:00 window
     const { data, error } = await supabase
       .from("availability_overrides")
       .upsert(
         {
           team_member_id: body.team_member_id,
           date: body.date,
-          available: body.available ?? false,
-          start_time: body.start_time || null,
-          end_time: body.end_time || null,
+          available: true,
+          start_time: "11:00",
+          end_time: "16:00",
         },
         { onConflict: "team_member_id,date" }
       )
@@ -104,7 +110,7 @@ export async function PUT(request: NextRequest) {
   });
 }
 
-// DELETE — remove an override
+// DELETE — remove an override by id (kept for admin use)
 export async function DELETE(request: NextRequest) {
   return withAdmin(async () => {
     const { searchParams } = new URL(request.url);
