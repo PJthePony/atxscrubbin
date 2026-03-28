@@ -15,6 +15,8 @@ interface BookingRow {
   status: string;
   stripe_payment_intent_id: string | null;
   stripe_refund_id: string | null;
+  tip_amount: number;
+  tip_stripe_payment_intent_id: string | null;
   created_at: string;
   customer: {
     full_name: string;
@@ -660,6 +662,11 @@ export default function BookingsPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold text-lg">${booking.total}</p>
+                    {Number(booking.tip_amount) > 0 && (
+                      <p className="text-xs text-green-600 font-medium">
+                        +${Number(booking.tip_amount).toFixed(2)} tip
+                      </p>
+                    )}
                     <p className="text-xs text-zinc-500">
                       ~{booking.estimated_duration_minutes} min
                     </p>
@@ -759,6 +766,23 @@ export default function BookingsPage() {
                               </code>
                             </p>
                           )}
+                          {Number(booking.tip_amount) > 0 && (
+                            <p>
+                              <span className="text-zinc-400">Tip: </span>
+                              <span className="text-green-400 font-medium">
+                                ${Number(booking.tip_amount).toFixed(2)}
+                              </span>
+                              {booking.tip_stripe_payment_intent_id && (
+                                <span className="text-zinc-500 text-xs ml-2">(separate charge)</span>
+                              )}
+                            </p>
+                          )}
+                          <p>
+                            <span className="text-zinc-400">Total collected: </span>
+                            <span className="text-white font-medium">
+                              ${(Number(booking.total) + Number(booking.tip_amount)).toFixed(2)}
+                            </span>
+                          </p>
                         </div>
                       </div>
                     )}

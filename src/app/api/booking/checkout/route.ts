@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     sms_opt_in,
     email_opt_in,
     notes,
+    tip_amount,
   } = body;
 
   // Validate required fields
@@ -137,6 +138,23 @@ export async function POST(request: NextRequest) {
     customerId = newCustomer.id;
   }
 
+  // 6b. Clean up abandoned (unpaid) bookings — from this customer and stale ones from anyone
+  await supabase
+    .from("bookings")
+    .delete()
+    .eq("customer_id", customerId)
+    .eq("status", "confirmed")
+    .is("stripe_payment_intent_id", null);
+
+  // Also clean up any unpaid bookings older than 30 minutes from any customer
+  const staleThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  await supabase
+    .from("bookings")
+    .delete()
+    .eq("status", "confirmed")
+    .is("stripe_payment_intent_id", null)
+    .lt("created_at", staleThreshold);
+
   // 7. Create booking with status 'confirmed' (payment pending)
   const { data: booking, error: bookingError } = await supabase
     .from("bookings")
@@ -153,6 +171,7 @@ export async function POST(request: NextRequest) {
       notes: notes || null,
       subtotal,
       total,
+      tip_amount: tip_amount && Number(tip_amount) > 0 ? Number(tip_amount) : 0,
       status: "confirmed",
     })
     .select("id")
@@ -222,6 +241,19 @@ export async function POST(request: NextRequest) {
         currency: "usd",
         product_data: { name: addon.name },
         unit_amount: Math.round(Number(addon.price) * 100),
+      },
+      quantity: 1,
+    });
+  }
+
+  // 10b. Add tip line item if applicable
+  const parsedTip = tip_amount && Number(tip_amount) > 0 ? Number(tip_amount) : 0;
+  if (parsedTip > 0) {
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: { name: "Tip for the crew" },
+        unit_amount: Math.round(parsedTip * 100),
       },
       quantity: 1,
     });

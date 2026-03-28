@@ -81,8 +81,13 @@ export function hourBeforeReminderText(data: {
 
 export function completionText(data: {
   customerName: string;
+  tipLink?: string;
 }) {
-  return `All done, ${data.customerName}! Your ride is looking fresh. ✨ Thanks for choosing Keep Austin Scrubbin'! Hope to see you again soon. 🤝`;
+  const base = `All done, ${data.customerName}! Your ride is looking fresh. ✨ Thanks for choosing Keep Austin Scrubbin'!`;
+  if (data.tipLink) {
+    return `${base}\n\nWant to show the crew some love? Leave a tip here: ${data.tipLink} 🤝`;
+  }
+  return `${base} Hope to see you again soon. 🤝`;
 }
 
 export function smsOptInText(data: { customerName: string }) {

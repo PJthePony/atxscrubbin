@@ -109,15 +109,20 @@ export async function PATCH(request: NextRequest) {
     if (safeUpdates.status === "completed" && data) {
       const { data: booking } = await supabase
         .from("bookings")
-        .select("customer:customers(full_name, phone)")
+        .select("tip_amount, customer:customers(full_name, phone)")
         .eq("id", id)
         .single();
 
       const customer = booking?.customer as unknown as { full_name: string; phone: string } | null;
       if (customer?.phone) {
+        // Only include tip link if customer didn't tip at checkout
+        const alreadyTipped = Number(booking?.tip_amount || 0) > 0;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://atxscrubbin.com";
+        const tipLink = alreadyTipped ? undefined : `${baseUrl}/tip/${id}`;
+
         await sendSMS(
           customer.phone,
-          completionText({ customerName: customer.full_name })
+          completionText({ customerName: customer.full_name, tipLink })
         );
 
         await supabase

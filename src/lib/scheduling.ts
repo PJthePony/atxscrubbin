@@ -87,7 +87,7 @@ export async function getAvailableSlots(
     return [];
   }
 
-  // 5. Get existing bookings for this date
+  // 5. Get existing bookings for this date (exclude cancelled and refunded)
   const { data: bookingRows } = await supabase
     .from("bookings")
     .select("scheduled_start, scheduled_end")

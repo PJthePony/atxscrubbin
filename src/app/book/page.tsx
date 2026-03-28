@@ -65,6 +65,10 @@ function BookContent() {
   const [notes, setNotes] = useState("");
   const [smsOptIn, setSmsOptIn] = useState(true);
 
+  // Tip
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTip, setCustomTip] = useState("");
+
   // Confirmation
   const [submitting, setSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
@@ -260,6 +264,7 @@ function BookContent() {
           customer_phone: phone,
           sms_opt_in: smsOptIn,
           notes,
+          tip_amount: tipAmount,
         }),
       });
 
@@ -940,9 +945,58 @@ function BookContent() {
               )}
 
               <div className="border-t-2 border-orange/20 pt-4 flex justify-between items-center">
-                <p className="text-lg font-bold text-brown-dark">Total</p>
+                <p className="text-lg font-bold text-brown-dark">Subtotal</p>
                 <p className="text-2xl font-bold text-orange">${total}</p>
               </div>
+            </div>
+
+            {/* Tip Selector */}
+            <div className="mt-6 rounded-2xl border-2 border-brown/10 bg-white p-6">
+              <p className="font-bold text-brown-dark mb-1">Add a tip for the crew?</p>
+              <p className="text-sm text-brown/50 mb-4">100% goes to the team. You can also tip after your wash.</p>
+              <div className="flex gap-2 flex-wrap">
+                {[0, 5, 10, 15].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => { setTipAmount(amt); setCustomTip(""); }}
+                    className={`rounded-full px-5 py-2.5 text-base font-semibold border-2 transition ${
+                      tipAmount === amt && customTip === ""
+                        ? "border-orange bg-orange/10 text-orange"
+                        : "border-brown/10 text-brown/70 hover:border-brown/30"
+                    }`}
+                  >
+                    {amt === 0 ? "No tip" : `$${amt}`}
+                  </button>
+                ))}
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brown/40 font-semibold">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Other"
+                    value={customTip}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCustomTip(val);
+                      const parsed = parseFloat(val);
+                      setTipAmount(parsed > 0 ? parsed : 0);
+                    }}
+                    className={`w-24 rounded-full pl-7 pr-3 py-2.5 text-base font-semibold border-2 transition outline-none ${
+                      customTip !== ""
+                        ? "border-orange bg-orange/10 text-orange"
+                        : "border-brown/10 text-brown/70 hover:border-brown/30"
+                    }`}
+                  />
+                </div>
+              </div>
+              {tipAmount > 0 && (
+                <div className="mt-4 flex justify-between items-center pt-3 border-t border-brown/5">
+                  <p className="text-lg font-bold text-brown-dark">Total with tip</p>
+                  <p className="text-2xl font-bold text-orange">${(total + tipAmount).toFixed(2)}</p>
+                </div>
+              )}
             </div>
 
             <p className="text-sm text-brown/50 text-center mt-4">

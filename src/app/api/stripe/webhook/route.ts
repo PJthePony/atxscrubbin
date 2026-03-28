@@ -36,8 +36,23 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const bookingId = session.metadata?.booking_id;
+    const sessionType = session.metadata?.type;
 
-    if (bookingId) {
+    if (bookingId && sessionType === "tip") {
+      // Handle post-wash tip payment
+      const supabase = createServerClient();
+
+      // Calculate tip amount from session (amount_total is in cents)
+      const tipAmount = (session.amount_total || 0) / 100;
+
+      await supabase
+        .from("bookings")
+        .update({
+          tip_amount: tipAmount,
+          tip_stripe_payment_intent_id: session.payment_intent,
+        })
+        .eq("id", bookingId);
+    } else if (bookingId) {
       const supabase = createServerClient();
 
       // Update booking with Stripe payment intent ID

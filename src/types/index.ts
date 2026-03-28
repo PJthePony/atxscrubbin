@@ -80,6 +80,8 @@ export interface Booking {
   status: BookingStatus;
   stripe_payment_intent_id: string | null;
   stripe_refund_id: string | null;
+  tip_amount: number;
+  tip_stripe_payment_intent_id: string | null;
   reminder_day_before_sent: boolean;
   reminder_hour_before_sent: boolean;
   completion_notification_sent: boolean;
