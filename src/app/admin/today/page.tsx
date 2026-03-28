@@ -34,6 +34,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
 export default function TodayPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checklists, setChecklists] = useState<Record<string, Record<string, boolean>>>({});
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -190,26 +191,95 @@ export default function TodayPage() {
                     </div>
                   )}
 
-                  {/* Action buttons */}
-                  <div className="flex gap-2">
+                  {/* Action buttons & checklist */}
+                  <div>
                     {booking.status === "confirmed" && (
                       <button
-                        onClick={() => updateStatus(booking.id, "in_progress")}
-                        className="flex-1 rounded-xl bg-yellow-600 py-3.5 text-base font-bold text-white hover:bg-yellow-500 active:scale-[0.98] transition"
+                        onClick={() => {
+                          const items: Record<string, boolean> = {
+                            "Exterior wash": false,
+                            "Tire scrub": false,
+                          };
+                          booking.booking_addons.forEach((ba) => {
+                            items[ba.addon.name] = false;
+                          });
+                          setChecklists((prev) => ({ ...prev, [booking.id]: items }));
+                          updateStatus(booking.id, "in_progress");
+                        }}
+                        className="w-full rounded-xl bg-yellow-600 py-3.5 text-base font-bold text-white hover:bg-yellow-500 active:scale-[0.98] transition"
                       >
                         Start Wash
                       </button>
                     )}
-                    {booking.status === "in_progress" && (
-                      <button
-                        onClick={() => updateStatus(booking.id, "completed")}
-                        className="flex-1 rounded-xl bg-green-600 py-3.5 text-base font-bold text-white hover:bg-green-500 active:scale-[0.98] transition"
-                      >
-                        Mark Done
-                      </button>
-                    )}
+                    {booking.status === "in_progress" && (() => {
+                      const items = checklists[booking.id];
+                      const allChecked = items ? Object.values(items).every(Boolean) : false;
+
+                      return (
+                        <div className="space-y-3">
+                          {/* Checklist */}
+                          {items && (
+                            <div className="rounded-xl border border-zinc-700 bg-zinc-800/60 overflow-hidden">
+                              <p className="px-4 py-2.5 text-xs font-semibold text-zinc-400 uppercase tracking-wide border-b border-zinc-700">
+                                Wash Checklist
+                              </p>
+                              {Object.entries(items).map(([name, checked], i) => {
+                                const isAddon = name !== "Exterior wash" && name !== "Tire scrub";
+                                return (
+                                  <button
+                                    key={name}
+                                    onClick={() =>
+                                      setChecklists((prev) => ({
+                                        ...prev,
+                                        [booking.id]: {
+                                          ...prev[booking.id],
+                                          [name]: !checked,
+                                        },
+                                      }))
+                                    }
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition hover:bg-zinc-700/40 active:bg-zinc-700/60 ${
+                                      i > 0 ? "border-t border-zinc-700/50" : ""
+                                    }`}
+                                  >
+                                    <span
+                                      className={`flex items-center justify-center w-6 h-6 rounded-lg border-2 shrink-0 transition ${
+                                        checked
+                                          ? "bg-green-500 border-green-500 text-white"
+                                          : "border-zinc-500 text-transparent"
+                                      }`}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </span>
+                                    <span className={`text-sm ${checked ? "text-zinc-500 line-through" : "text-white"}`}>
+                                      {isAddon && (
+                                        <span className="text-orange text-xs font-semibold mr-1.5">ADD-ON</span>
+                                      )}
+                                      {name}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => updateStatus(booking.id, "completed")}
+                            disabled={!allChecked}
+                            className={`w-full rounded-xl py-3.5 text-base font-bold text-white active:scale-[0.98] transition ${
+                              allChecked
+                                ? "bg-green-600 hover:bg-green-500"
+                                : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {allChecked ? "Mark Done" : "Complete checklist to finish"}
+                          </button>
+                        </div>
+                      );
+                    })()}
                     {booking.status === "completed" && (
-                      <div className="flex-1 text-center py-3.5 text-base text-green-400 font-semibold">
+                      <div className="text-center py-3.5 text-base text-green-400 font-semibold">
                         Completed
                       </div>
                     )}
