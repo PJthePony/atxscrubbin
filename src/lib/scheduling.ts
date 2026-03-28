@@ -42,7 +42,7 @@ export async function getAvailableSlots(
       typeof row.value === "string" ? row.value : JSON.stringify(row.value);
   }
 
-  const travelBuffer = parseInt(settings.travel_buffer_minutes || "15", 10);
+  const travelBuffer = parseInt(settings.travel_buffer_minutes || "10", 10);
   const slotIncrement = parseInt(settings.slot_increment_minutes || "30", 10);
   const minTeam = parseInt(settings.min_team_members_per_booking || "2", 10);
 
@@ -97,32 +97,36 @@ export async function getAvailableSlots(
   const bookings = (bookingRows as BookingRow[] | null) || [];
 
   // 6. Generate candidate slots within the availability window
-  const totalDuration = durationMinutes + travelBuffer;
+  // Each slot needs travelBuffer on both sides (before and after the wash)
   const slots: SlotResult[] = [];
 
   let cursor = timeToMinutes(WINDOW_START);
   const endLimit = timeToMinutes(WINDOW_END);
 
-  while (cursor + totalDuration <= endLimit) {
+  while (cursor + durationMinutes <= endLimit) {
     const slotStart = minutesToTime(cursor);
     const slotEnd = minutesToTime(cursor + durationMinutes);
-    const blockEnd = minutesToTime(cursor + totalDuration);
 
     // Count members available and not already booked for this slot
     let availableCount = 0;
     for (const [, windows] of memberWindows) {
       const memberAvailable = windows.some(
-        (w) => w.start <= slotStart && w.end >= blockEnd
+        (w) => w.start <= slotStart && w.end >= slotEnd
       );
 
       if (memberAvailable) {
+        // Check if this slot (with travel buffer on both sides) overlaps
+        // with any existing booking (also with travel buffer on both sides)
         const memberBusy = bookings.some((b) => {
-          const bStart = b.scheduled_start.substring(0, 5);
-          const bEnd = b.scheduled_end.substring(0, 5);
-          const bEndWithBuffer = minutesToTime(
-            timeToMinutes(bEnd) + travelBuffer
+          const bStartMin = timeToMinutes(b.scheduled_start.substring(0, 5));
+          const bEndMin = timeToMinutes(b.scheduled_end.substring(0, 5));
+          const slotStartMin = cursor;
+          const slotEndMin = cursor + durationMinutes;
+          // Overlap check: new slot needs buffer after, existing booking needs buffer before/after
+          return (
+            slotStartMin < bEndMin + travelBuffer &&
+            slotEndMin + travelBuffer > bStartMin
           );
-          return slotStart < bEndWithBuffer && blockEnd > bStart;
         });
 
         if (!memberBusy) {
