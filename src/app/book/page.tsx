@@ -634,8 +634,8 @@ function BookContent() {
                                   : !hasAvailability
                                   ? "text-brown/25 cursor-not-allowed"
                                   : isSelected
-                                  ? "bg-orange text-white font-bold"
-                                  : "bg-orange/15 text-orange font-bold cursor-pointer hover:bg-orange/25",
+                                  ? "bg-orange text-white font-bold ring-1 ring-inset ring-orange"
+                                  : "bg-orange/15 text-orange font-bold cursor-pointer hover:bg-orange/25 ring-1 ring-inset ring-orange/40",
                               ].filter(Boolean).join(" ")}
                             >
                               {day.getDate()}
