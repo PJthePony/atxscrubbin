@@ -6,7 +6,6 @@ import { Suspense } from "react";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const bookingId = searchParams.get("booking_id");
 
   return (
     <div className="min-h-screen bg-cream">
@@ -29,12 +28,6 @@ function SuccessContent() {
           We got your payment and your wash is locked in.
           We&apos;ll see you at your place!
         </p>
-
-        {bookingId && (
-          <p className="text-sm text-brown/40 mb-8">
-            Booking ID: {bookingId.slice(0, 8)}...
-          </p>
-        )}
 
         <p className="text-sm text-brown/50 mb-8 max-w-md mx-auto flex items-start gap-2 text-left">
           <span>💡</span>
