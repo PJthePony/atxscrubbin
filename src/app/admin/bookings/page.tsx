@@ -21,16 +21,30 @@ interface BookingRow {
     phone: string;
   } | null;
   car_size: {
+    id: string;
     name: string;
     base_price: number;
   } | null;
   booking_addons: {
-    addon: { name: string };
+    addon: { id: string; name: string };
     price_at_booking: number;
   }[];
   booking_team_members: {
     team_member: { display_name: string };
   }[];
+}
+
+interface CarSizeOption {
+  id: string;
+  name: string;
+  base_price: number;
+  wash_time_minutes: number;
+}
+
+interface AddonOption {
+  id: string;
+  name: string;
+  price: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,6 +57,30 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_OPTIONS = ["confirmed", "in_progress", "completed", "cancelled"];
 
+interface BookingForm {
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  car_size_id: string;
+  addon_ids: string[];
+  address: string;
+  scheduled_date: string;
+  scheduled_start: string;
+  notes: string;
+}
+
+const EMPTY_FORM: BookingForm = {
+  customer_name: "",
+  customer_email: "",
+  customer_phone: "",
+  car_size_id: "",
+  addon_ids: [],
+  address: "",
+  scheduled_date: "",
+  scheduled_start: "",
+  notes: "",
+};
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +90,15 @@ export default function BookingsPage() {
   const [textingId, setTextingId] = useState<string | null>(null);
   const [textMessage, setTextMessage] = useState("");
   const [textSending, setTextSending] = useState(false);
+
+  // Modal state — shared for create and edit
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [form, setForm] = useState<BookingForm>(EMPTY_FORM);
+  const [carSizes, setCarSizes] = useState<CarSizeOption[]>([]);
+  const [addons, setAddons] = useState<AddonOption[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -73,6 +120,48 @@ export default function BookingsPage() {
   useEffect(() => {
     loadBookings();
   }, [loadBookings]);
+
+  // Load car sizes and addons when modal opens
+  useEffect(() => {
+    if (!modalMode) return;
+    fetch("/api/booking/services")
+      .then((r) => r.json())
+      .then((data) => {
+        setCarSizes(data.car_sizes || []);
+        setAddons(data.addons || []);
+      });
+  }, [modalMode]);
+
+  const openCreateModal = () => {
+    setForm(EMPTY_FORM);
+    setEditingBookingId(null);
+    setFormError("");
+    setModalMode("create");
+  };
+
+  const openEditModal = (booking: BookingRow) => {
+    setForm({
+      customer_name: booking.customer?.full_name || "",
+      customer_email: booking.customer?.email || "",
+      customer_phone: booking.customer?.phone || "",
+      car_size_id: booking.car_size?.id || "",
+      addon_ids: booking.booking_addons.map((ba) => ba.addon.id),
+      address: booking.address,
+      scheduled_date: booking.scheduled_date,
+      scheduled_start: booking.scheduled_start.slice(0, 5), // HH:MM
+      notes: booking.notes || "",
+    });
+    setEditingBookingId(booking.id);
+    setFormError("");
+    setModalMode("edit");
+  };
+
+  const closeModal = () => {
+    setModalMode(null);
+    setEditingBookingId(null);
+    setForm(EMPTY_FORM);
+    setFormError("");
+  };
 
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/admin/bookings", {
@@ -117,6 +206,79 @@ export default function BookingsPage() {
     loadBookings();
   };
 
+  const deleteBooking = async (id: string) => {
+    if (!confirm("Permanently delete this booking? This cannot be undone."))
+      return;
+    const res = await fetch(`/api/admin/bookings?id=${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Delete failed");
+      return;
+    }
+    setExpandedId(null);
+    loadBookings();
+  };
+
+  const handleSave = async () => {
+    setFormError("");
+    if (
+      !form.customer_name ||
+      !form.customer_email ||
+      !form.customer_phone ||
+      !form.car_size_id ||
+      !form.address ||
+      !form.scheduled_date ||
+      !form.scheduled_start
+    ) {
+      setFormError("Please fill in all required fields.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (modalMode === "create") {
+        const res = await fetch("/api/admin/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error || "Failed to create booking");
+          return;
+        }
+      } else if (modalMode === "edit" && editingBookingId) {
+        const res = await fetch("/api/admin/bookings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingBookingId, ...form }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error || "Failed to update booking");
+          return;
+        }
+      }
+      closeModal();
+      loadBookings();
+    } catch {
+      setFormError("Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAddon = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      addon_ids: prev.addon_ids.includes(id)
+        ? prev.addon_ids.filter((a) => a !== id)
+        : [...prev.addon_ids, id],
+    }));
+  };
+
   const formatTime = (time: string) => {
     const [h, m] = time.split(":").map(Number);
     const ampm = h >= 12 ? "PM" : "AM";
@@ -143,6 +305,12 @@ export default function BookingsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <button
+            onClick={openCreateModal}
+            className="rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-500 active:scale-[0.98] transition min-h-[44px]"
+          >
+            + New Booking
+          </button>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -172,13 +340,221 @@ export default function BookingsPage() {
         </div>
       </div>
 
+      {/* Create / Edit Booking Modal */}
+      {modalMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">
+                {modalMode === "create" ? "New Booking" : "Edit Booking"}
+              </h2>
+              <button
+                onClick={closeModal}
+                className="text-zinc-400 hover:text-white text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Customer info */}
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  value={form.customer_name}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, customer_name: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={form.customer_email}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        customer_email: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">
+                    Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.customer_phone}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        customer_phone: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">
+                  Address *
+                </label>
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, address: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                />
+              </div>
+
+              {/* Car size */}
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">
+                  Car Size *
+                </label>
+                <select
+                  value={form.car_size_id}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, car_size_id: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                >
+                  <option value="">Select...</option>
+                  {carSizes.map((cs) => (
+                    <option key={cs.id} value={cs.id}>
+                      {cs.name} — ${cs.base_price}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Addons */}
+              {addons.length > 0 && (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">
+                    Add-ons
+                  </label>
+                  <div className="space-y-2">
+                    {addons.map((a) => (
+                      <label
+                        key={a.id}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.addon_ids.includes(a.id)}
+                          onChange={() => toggleAddon(a.id)}
+                          className="rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500"
+                        />
+                        <span className="text-sm">
+                          {a.name}{" "}
+                          <span className="text-zinc-400">— ${a.price}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Date & time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={form.scheduled_date}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        scheduled_date: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={form.scheduled_start}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        scheduled_start: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, notes: e.target.value }))
+                  }
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white resize-none"
+                />
+              </div>
+
+              {formError && (
+                <p className="text-sm text-red-400">{formError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-500 active:scale-[0.98] transition disabled:opacity-40"
+                >
+                  {saving
+                    ? "Saving..."
+                    : modalMode === "create"
+                    ? "Create Booking"
+                    : "Save Changes"}
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-600 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-zinc-500 text-center py-12">Loading...</p>
       ) : bookings.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center text-zinc-500">
           No bookings found.{" "}
-          {(statusFilter || dateFilter) &&
-            "Try adjusting your filters."}
+          {(statusFilter || dateFilter) && "Try adjusting your filters."}
         </div>
       ) : (
         <div className="space-y-3">
@@ -203,7 +579,8 @@ export default function BookingsPage() {
                       </span>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
-                          STATUS_COLORS[booking.status] || "bg-zinc-700 text-zinc-300"
+                          STATUS_COLORS[booking.status] ||
+                          "bg-zinc-700 text-zinc-300"
                         }`}
                       >
                         {booking.status.replace("_", " ")}
@@ -405,6 +782,22 @@ export default function BookingsPage() {
                           )}
                         </>
                       )}
+
+                      {/* Edit & Delete — always available */}
+                      <div className="ml-auto flex gap-2">
+                        <button
+                          onClick={() => openEditModal(booking)}
+                          className="rounded-lg border border-zinc-600 px-4 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 active:scale-[0.98] transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteBooking(booking.id)}
+                          className="rounded-lg border border-red-800 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-900/30 active:scale-[0.98] transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

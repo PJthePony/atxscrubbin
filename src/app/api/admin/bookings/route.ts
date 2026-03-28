@@ -130,3 +130,344 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(data);
   });
 }
+
+// POST — admin create booking (no Stripe, no slot validation)
+export async function POST(request: NextRequest) {
+  return withAdmin(async () => {
+    const body = await request.json();
+
+    const {
+      car_size_id,
+      addon_ids,
+      address,
+      scheduled_date,
+      scheduled_start,
+      customer_name,
+      customer_email,
+      customer_phone,
+      notes,
+    } = body;
+
+    if (
+      !car_size_id ||
+      !address ||
+      !scheduled_date ||
+      !scheduled_start ||
+      !customer_name ||
+      !customer_email ||
+      !customer_phone
+    ) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createServerClient();
+
+    // Get car size
+    const { data: carSize, error: sizeError } = await supabase
+      .from("car_sizes")
+      .select("*")
+      .eq("id", car_size_id)
+      .single();
+
+    if (sizeError || !carSize) {
+      return NextResponse.json({ error: "Invalid car size" }, { status: 400 });
+    }
+
+    // Get addons
+    let addons: { id: string; price: number; time_minutes: number }[] = [];
+    if (addon_ids && addon_ids.length > 0) {
+      const { data: addonData } = await supabase
+        .from("addons")
+        .select("id, price, time_minutes")
+        .in("id", addon_ids);
+      addons = addonData || [];
+    }
+
+    // Calculate totals
+    const addonTotal = addons.reduce((sum, a) => sum + a.price, 0);
+    const addonTime = addons.reduce((sum, a) => sum + a.time_minutes, 0);
+    const totalDuration = carSize.wash_time_minutes + addonTime;
+    const subtotal = carSize.base_price + addonTotal;
+    const total = subtotal;
+
+    // Calculate end time
+    const [h, m] = scheduled_start.split(":").map(Number);
+    const endMinutes = h * 60 + m + totalDuration;
+    const endH = Math.floor(endMinutes / 60);
+    const endM = endMinutes % 60;
+    const scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
+
+    // Find or create customer
+    let customerId: string;
+
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("email", customer_email)
+      .limit(1)
+      .single();
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+      await supabase
+        .from("customers")
+        .update({
+          full_name: customer_name,
+          phone: customer_phone,
+          address,
+        })
+        .eq("id", customerId);
+    } else {
+      const { data: newCustomer, error: customerError } = await supabase
+        .from("customers")
+        .insert({
+          full_name: customer_name,
+          email: customer_email,
+          phone: customer_phone,
+          address,
+        })
+        .select("id")
+        .single();
+
+      if (customerError || !newCustomer) {
+        return NextResponse.json(
+          { error: "Failed to create customer record" },
+          { status: 500 }
+        );
+      }
+      customerId = newCustomer.id;
+    }
+
+    // Create booking
+    const { data: booking, error: bookingError } = await supabase
+      .from("bookings")
+      .insert({
+        customer_id: customerId,
+        car_size_id,
+        scheduled_date,
+        scheduled_start,
+        scheduled_end,
+        estimated_duration_minutes: totalDuration,
+        address,
+        notes: notes || null,
+        subtotal,
+        total,
+        status: "confirmed",
+      })
+      .select("id")
+      .single();
+
+    if (bookingError || !booking) {
+      return NextResponse.json(
+        { error: "Failed to create booking" },
+        { status: 500 }
+      );
+    }
+
+    // Insert booking addons
+    if (addons.length > 0) {
+      await supabase.from("booking_addons").insert(
+        addons.map((a) => ({
+          booking_id: booking.id,
+          addon_id: a.id,
+          price_at_booking: a.price,
+          time_at_booking: a.time_minutes,
+        }))
+      );
+    }
+
+    // Assign team members
+    const { data: settingsRows } = await supabase
+      .from("settings")
+      .select("key, value")
+      .eq("key", "min_team_members_per_booking");
+
+    const minTeam = settingsRows?.[0]
+      ? parseInt(String(settingsRows[0].value), 10)
+      : 2;
+
+    const { data: activeMembers } = await supabase
+      .from("team_members")
+      .select("id")
+      .eq("active", true)
+      .limit(minTeam);
+
+    if (activeMembers && activeMembers.length > 0) {
+      await supabase.from("booking_team_members").insert(
+        activeMembers.map((m) => ({
+          booking_id: booking.id,
+          team_member_id: m.id,
+        }))
+      );
+    }
+
+    return NextResponse.json({ booking_id: booking.id, total });
+  });
+}
+
+// PUT — full edit of a booking (customer, service, schedule, addons)
+export async function PUT(request: NextRequest) {
+  return withAdmin(async () => {
+    const body = await request.json();
+    const {
+      id,
+      car_size_id,
+      addon_ids,
+      address,
+      scheduled_date,
+      scheduled_start,
+      customer_name,
+      customer_email,
+      customer_phone,
+      notes,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const supabase = createServerClient();
+
+    // Get the existing booking to find customer_id
+    const { data: existing, error: existingError } = await supabase
+      .from("bookings")
+      .select("customer_id")
+      .eq("id", id)
+      .single();
+
+    if (existingError || !existing) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    // Update customer info
+    if (customer_name || customer_phone) {
+      const customerUpdates: Record<string, string> = {};
+      if (customer_name) customerUpdates.full_name = customer_name;
+      if (customer_phone) customerUpdates.phone = customer_phone;
+      if (address) customerUpdates.address = address;
+
+      await supabase
+        .from("customers")
+        .update(customerUpdates)
+        .eq("id", existing.customer_id);
+    }
+
+    // Build booking update
+    const bookingUpdate: Record<string, unknown> = {};
+    if (address) bookingUpdate.address = address;
+    if (notes !== undefined) bookingUpdate.notes = notes || null;
+    if (scheduled_date) bookingUpdate.scheduled_date = scheduled_date;
+
+    // Recalculate pricing and duration if car size or addons changed
+    if (car_size_id) {
+      const { data: carSize } = await supabase
+        .from("car_sizes")
+        .select("*")
+        .eq("id", car_size_id)
+        .single();
+
+      if (carSize) {
+        let addonsData: { id: string; price: number; time_minutes: number }[] = [];
+        if (addon_ids && addon_ids.length > 0) {
+          const { data: ad } = await supabase
+            .from("addons")
+            .select("id, price, time_minutes")
+            .in("id", addon_ids);
+          addonsData = ad || [];
+        }
+
+        const addonTotal = addonsData.reduce((s, a) => s + a.price, 0);
+        const addonTime = addonsData.reduce((s, a) => s + a.time_minutes, 0);
+        const totalDuration = carSize.wash_time_minutes + addonTime;
+        const subtotal = carSize.base_price + addonTotal;
+
+        bookingUpdate.car_size_id = car_size_id;
+        bookingUpdate.estimated_duration_minutes = totalDuration;
+        bookingUpdate.subtotal = subtotal;
+        bookingUpdate.total = subtotal;
+
+        // Recalculate end time
+        const startTime = scheduled_start || "";
+        if (startTime) {
+          const [h, m] = startTime.split(":").map(Number);
+          const endMinutes = h * 60 + m + totalDuration;
+          const endH = Math.floor(endMinutes / 60);
+          const endM = endMinutes % 60;
+          bookingUpdate.scheduled_start = startTime;
+          bookingUpdate.scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
+        }
+
+        // Replace addons — delete old, insert new
+        await supabase.from("booking_addons").delete().eq("booking_id", id);
+        if (addonsData.length > 0) {
+          await supabase.from("booking_addons").insert(
+            addonsData.map((a) => ({
+              booking_id: id,
+              addon_id: a.id,
+              price_at_booking: a.price,
+              time_at_booking: a.time_minutes,
+            }))
+          );
+        }
+      }
+    } else if (scheduled_start) {
+      // Just updating time, no car size change — still recalc end time
+      const { data: currentBooking } = await supabase
+        .from("bookings")
+        .select("estimated_duration_minutes")
+        .eq("id", id)
+        .single();
+
+      if (currentBooking) {
+        const [h, m] = scheduled_start.split(":").map(Number);
+        const endMinutes = h * 60 + m + currentBooking.estimated_duration_minutes;
+        const endH = Math.floor(endMinutes / 60);
+        const endM = endMinutes % 60;
+        bookingUpdate.scheduled_start = scheduled_start;
+        bookingUpdate.scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
+      }
+    }
+
+    if (Object.keys(bookingUpdate).length > 0) {
+      const { error: updateError } = await supabase
+        .from("bookings")
+        .update(bookingUpdate)
+        .eq("id", id);
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  });
+}
+
+// DELETE — remove a booking and its related records
+export async function DELETE(request: NextRequest) {
+  return withAdmin(async () => {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const supabase = createServerClient();
+
+    // Delete related records first
+    await supabase.from("booking_addons").delete().eq("booking_id", id);
+    await supabase.from("booking_team_members").delete().eq("booking_id", id);
+
+    const { error } = await supabase.from("bookings").delete().eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  });
+}
