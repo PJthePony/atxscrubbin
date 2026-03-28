@@ -560,7 +560,7 @@ function BookContent() {
               </label>
 
               {/* Custom calendar */}
-              <div className="rounded-2xl border-2 border-brown/10 bg-white overflow-hidden">
+              <div className="max-w-md mx-auto rounded-2xl border-2 border-brown/10 bg-white overflow-hidden">
                 {/* Month nav */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-brown/5">
                   <button
