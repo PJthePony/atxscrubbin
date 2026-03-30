@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
+import { deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,15 @@ export async function POST(request: NextRequest) {
   }
 
   await supabase.from("bookings").update(updateData).eq("id", booking_id);
+
+  // Remove from Google Calendar
+  if (booking.google_calendar_event_id) {
+    deleteCalendarEvent(booking.google_calendar_event_id).catch(() => {});
+    await supabase
+      .from("bookings")
+      .update({ google_calendar_event_id: null })
+      .eq("id", booking_id);
+  }
 
   return NextResponse.json({
     success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getAvailableSlots } from "@/lib/scheduling";
+import { syncBookingEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +44,11 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Get addons for pricing and duration
-  let addons: { id: string; price: number; time_minutes: number }[] = [];
+  let addons: { id: string; name: string; price: number; time_minutes: number }[] = [];
   if (addon_ids && addon_ids.length > 0) {
     const { data: addonData, error: addonError } = await supabase
       .from("addons")
-      .select("id, price, time_minutes")
+      .select("id, name, price, time_minutes")
       .in("id", addon_ids);
 
     if (addonError) {
@@ -190,6 +191,31 @@ export async function POST(request: NextRequest) {
     }));
 
     await supabase.from("booking_team_members").insert(teamRows);
+  }
+
+  // Sync to Google Calendar
+  try {
+    const eventId = await syncBookingEvent({
+      status: "confirmed",
+      customerName: customer_name,
+      carSizeName: carSize.name,
+      date: scheduled_date,
+      startTime: scheduled_start,
+      endTime: scheduled_end,
+      address,
+      total,
+      notes: notes || null,
+      addonNames: addons.map((a) => a.name),
+    });
+
+    if (eventId) {
+      await supabase
+        .from("bookings")
+        .update({ google_calendar_event_id: eventId })
+        .eq("id", booking.id);
+    }
+  } catch (err) {
+    console.error("Calendar sync failed:", err);
   }
 
   return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { sendSMS, bookingConfirmationText, smsOptInText } from "@/lib/twilio";
+import { syncBookingEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       // Send confirmation or opt-in text based on customer SMS preferences
       const { data: booking } = await supabase
         .from("bookings")
-        .select("*, customer:customers(*), car_size:car_sizes(*)")
+        .select("*, customer:customers(*), car_size:car_sizes(*), booking_addons(addon:addons(name))")
         .eq("id", bookingId)
         .single();
 
@@ -105,6 +106,37 @@ export async function POST(request: NextRequest) {
           );
         }
       }
+
+      // Fallback: sync to Google Calendar if not already synced during booking creation
+      if (!booking?.google_calendar_event_id && booking) {
+        try {
+          const addonNames = ((booking.booking_addons || []) as unknown as { addon: { name: string } }[])
+            .map((ba: { addon: { name: string } }) => ba.addon?.name)
+            .filter(Boolean);
+
+          const eventId = await syncBookingEvent({
+            status: "confirmed",
+            customerName: booking.customer?.full_name || "Unknown",
+            carSizeName: booking.car_size?.name || "Car Wash",
+            date: booking.scheduled_date,
+            startTime: booking.scheduled_start,
+            endTime: booking.scheduled_end,
+            address: booking.address,
+            total: booking.total,
+            notes: booking.notes,
+            addonNames,
+          });
+
+          if (eventId) {
+            await supabase
+              .from("bookings")
+              .update({ google_calendar_event_id: eventId })
+              .eq("id", bookingId);
+          }
+        } catch (err) {
+          console.error("Calendar sync failed:", err);
+        }
+      }
     }
   }
 
@@ -115,14 +147,27 @@ export async function POST(request: NextRequest) {
     if (paymentIntentId) {
       const supabase = createServerClient();
 
+      // Get the booking's calendar event ID before updating
+      const { data: refundBooking } = await supabase
+        .from("bookings")
+        .select("id, google_calendar_event_id")
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .single();
+
       // Find booking by payment intent and mark as refunded
       await supabase
         .from("bookings")
         .update({
           status: "refunded",
           stripe_refund_id: charge.refunds?.data?.[0]?.id || null,
+          google_calendar_event_id: null,
         })
         .eq("stripe_payment_intent_id", paymentIntentId);
+
+      // Remove from Google Calendar
+      if (refundBooking?.google_calendar_event_id) {
+        deleteCalendarEvent(refundBooking.google_calendar_event_id).catch(() => {});
+      }
     }
   }
 

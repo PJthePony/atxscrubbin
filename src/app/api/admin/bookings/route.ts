@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { withAdmin } from "@/lib/admin-guard";
 import { sendSMS, completionText } from "@/lib/twilio";
+import { syncBookingEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,56 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Sync to Google Calendar
+    try {
+      if (safeUpdates.status === "cancelled") {
+        if (data.google_calendar_event_id) {
+          await deleteCalendarEvent(data.google_calendar_event_id);
+          await supabase
+            .from("bookings")
+            .update({ google_calendar_event_id: null })
+            .eq("id", id);
+        }
+      } else {
+        const { data: full } = await supabase
+          .from("bookings")
+          .select("*, customer:customers(full_name), car_size:car_sizes(name), booking_addons(addon:addons(name))")
+          .eq("id", id)
+          .single();
+
+        if (full) {
+          const customer = full.customer as unknown as { full_name: string } | null;
+          const carSize = full.car_size as unknown as { name: string } | null;
+          const addonNames = ((full.booking_addons || []) as unknown as { addon: { name: string } }[])
+            .map((ba) => ba.addon?.name)
+            .filter(Boolean);
+
+          const eventId = await syncBookingEvent({
+            status: full.status,
+            customerName: customer?.full_name || "Unknown",
+            carSizeName: carSize?.name || "Car Wash",
+            date: full.scheduled_date,
+            startTime: full.scheduled_start,
+            endTime: full.scheduled_end,
+            address: full.address,
+            total: full.total,
+            notes: full.notes,
+            addonNames,
+            existingEventId: full.google_calendar_event_id,
+          });
+
+          if (eventId && eventId !== full.google_calendar_event_id) {
+            await supabase
+              .from("bookings")
+              .update({ google_calendar_event_id: eventId })
+              .eq("id", id);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Calendar sync failed:", err);
+    }
+
     // Send completion text when status changes to completed
     if (safeUpdates.status === "completed" && data) {
       const { data: booking } = await supabase
@@ -182,11 +233,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get addons
-    let addons: { id: string; price: number; time_minutes: number }[] = [];
+    let addons: { id: string; name: string; price: number; time_minutes: number }[] = [];
     if (addon_ids && addon_ids.length > 0) {
       const { data: addonData } = await supabase
         .from("addons")
-        .select("id, price, time_minutes")
+        .select("id, name, price, time_minutes")
         .in("id", addon_ids);
       addons = addonData || [];
     }
@@ -307,6 +358,31 @@ export async function POST(request: NextRequest) {
           team_member_id: m.id,
         }))
       );
+    }
+
+    // Sync to Google Calendar
+    try {
+      const eventId = await syncBookingEvent({
+        status: "confirmed",
+        customerName: customer_name,
+        carSizeName: carSize.name,
+        date: scheduled_date,
+        startTime: scheduled_start,
+        endTime: scheduled_end,
+        address,
+        total,
+        notes: notes || null,
+        addonNames: addons.map((a) => a.name),
+      });
+
+      if (eventId) {
+        await supabase
+          .from("bookings")
+          .update({ google_calendar_event_id: eventId })
+          .eq("id", booking.id);
+      }
+    } catch (err) {
+      console.error("Calendar sync failed:", err);
     }
 
     return NextResponse.json({ booking_id: booking.id, total });
@@ -447,6 +523,46 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Sync to Google Calendar
+    try {
+      const { data: full } = await supabase
+        .from("bookings")
+        .select("*, customer:customers(full_name), car_size:car_sizes(name), booking_addons(addon:addons(name))")
+        .eq("id", id)
+        .single();
+
+      if (full) {
+        const customer = full.customer as unknown as { full_name: string } | null;
+        const carSize = full.car_size as unknown as { name: string } | null;
+        const addonNames = ((full.booking_addons || []) as unknown as { addon: { name: string } }[])
+          .map((ba) => ba.addon?.name)
+          .filter(Boolean);
+
+        const eventId = await syncBookingEvent({
+          status: full.status,
+          customerName: customer?.full_name || "Unknown",
+          carSizeName: carSize?.name || "Car Wash",
+          date: full.scheduled_date,
+          startTime: full.scheduled_start,
+          endTime: full.scheduled_end,
+          address: full.address,
+          total: full.total,
+          notes: full.notes,
+          addonNames,
+          existingEventId: full.google_calendar_event_id,
+        });
+
+        if (eventId && eventId !== full.google_calendar_event_id) {
+          await supabase
+            .from("bookings")
+            .update({ google_calendar_event_id: eventId })
+            .eq("id", id);
+        }
+      }
+    } catch (err) {
+      console.error("Calendar sync failed:", err);
+    }
+
     return NextResponse.json({ success: true });
   });
 }
@@ -463,6 +579,13 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createServerClient();
 
+    // Fetch calendar event ID before deleting
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("google_calendar_event_id")
+      .eq("id", id)
+      .single();
+
     // Delete related records first
     await supabase.from("booking_addons").delete().eq("booking_id", id);
     await supabase.from("booking_team_members").delete().eq("booking_id", id);
@@ -471,6 +594,11 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Remove from Google Calendar
+    if (booking?.google_calendar_event_id) {
+      deleteCalendarEvent(booking.google_calendar_event_id).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

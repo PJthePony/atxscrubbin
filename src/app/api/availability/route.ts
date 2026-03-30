@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { withAdmin } from "@/lib/admin-guard";
+import { syncAvailabilityEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,14 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
 
     if (body.available === false) {
+      // Fetch existing event ID before deleting
+      const { data: existing } = await supabase
+        .from("availability_overrides")
+        .select("google_calendar_event_id")
+        .eq("team_member_id", body.team_member_id)
+        .eq("date", body.date)
+        .single();
+
       const { error } = await supabase
         .from("availability_overrides")
         .delete()
@@ -104,6 +113,12 @@ export async function POST(request: NextRequest) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Remove from Google Calendar
+      if (existing?.google_calendar_event_id) {
+        deleteCalendarEvent(existing.google_calendar_event_id).catch(() => {});
+      }
+
       return NextResponse.json({ success: true });
     }
 
@@ -126,6 +141,35 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Sync to Google Calendar
+    try {
+      const { data: member } = await supabase
+        .from("team_members")
+        .select("display_name")
+        .eq("id", body.team_member_id)
+        .single();
+
+      if (member) {
+        const eventId = await syncAvailabilityEvent({
+          teamMemberName: member.display_name,
+          date: body.date,
+          startTime: "11:00",
+          endTime: "16:00",
+          existingEventId: data.google_calendar_event_id,
+        });
+
+        if (eventId && eventId !== data.google_calendar_event_id) {
+          await supabase
+            .from("availability_overrides")
+            .update({ google_calendar_event_id: eventId })
+            .eq("id", data.id);
+        }
+      }
+    } catch (err) {
+      console.error("Calendar sync failed:", err);
+    }
+
     return NextResponse.json(data);
   });
 }
@@ -140,6 +184,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createServerClient();
+
+    // Fetch event ID before deleting
+    const { data: existing } = await supabase
+      .from("availability_overrides")
+      .select("google_calendar_event_id")
+      .eq("id", id)
+      .single();
+
     const { error } = await supabase
       .from("availability_overrides")
       .delete()
@@ -148,6 +200,11 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    if (existing?.google_calendar_event_id) {
+      deleteCalendarEvent(existing.google_calendar_event_id).catch(() => {});
+    }
+
     return NextResponse.json({ success: true });
   });
 }
