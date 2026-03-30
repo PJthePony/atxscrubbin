@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       const total = Number(booking.total) || 0;
       const tip = Number(booking.tip_amount) || 0;
       const members = (
-        booking.booking_team_members as {
+        booking.booking_team_members as unknown as {
           team_member: { id: string; display_name: string };
         }[]
       ).map((btm) => btm.team_member);
