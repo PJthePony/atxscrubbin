@@ -23,6 +23,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -57,6 +59,25 @@ export default function SettingsPage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function syncCalendar() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/calendar/backfill", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        const { availability, bookings } = data.results;
+        setSyncResult(`Synced ${availability.synced} availability slots and ${bookings.synced} bookings to Google Calendar.`);
+      } else {
+        setSyncResult("Sync failed: " + (data.error || "Unknown error"));
+      }
+    } catch {
+      setSyncResult("Sync failed. Check your Google Calendar credentials.");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   if (loading) return <div className="text-zinc-500">Loading...</div>;
@@ -127,7 +148,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={save}
             disabled={saving}
@@ -135,9 +156,36 @@ export default function SettingsPage() {
           >
             {saving ? "Saving..." : "Save Settings"}
           </button>
-          {saved && (
-            <span className="text-sm text-green-400">Saved!</span>
-          )}
+          <button
+            onClick={syncCalendar}
+            disabled={syncing}
+            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm font-semibold transition hover:border-zinc-500 disabled:opacity-50"
+          >
+            {syncing ? "Syncing..." : "Sync Google Calendar"}
+          </button>
+          {saved && <span className="text-sm text-green-400">Saved!</span>}
+          {syncResult && <span className="text-sm text-zinc-400">{syncResult}</span>}
+        </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3">
+          <h3 className="font-semibold text-sm">Google Calendar</h3>
+          <p className="text-xs text-zinc-400">
+            Sync all existing availability and bookings to Google Calendar. Only unsynced records will be added — safe to run multiple times.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={syncCalendar}
+              disabled={syncing}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-5 py-2 text-sm font-semibold transition hover:bg-zinc-700 disabled:opacity-50"
+            >
+              {syncing ? "Syncing..." : "Sync with Google Calendar"}
+            </button>
+            {syncResult && (
+              <span className={`text-sm ${syncResult.startsWith("Sync failed") ? "text-red-400" : "text-green-400"}`}>
+                {syncResult}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
