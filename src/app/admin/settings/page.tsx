@@ -178,26 +178,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3">
-          <h3 className="font-semibold text-sm">Google Calendar</h3>
-          <p className="text-xs text-zinc-400">
-            Sync all existing availability and bookings to Google Calendar. Only unsynced records will be added — safe to run multiple times.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={syncCalendar}
-              disabled={syncing}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-5 py-2 text-sm font-semibold transition hover:bg-zinc-700 disabled:opacity-50"
-            >
-              {syncing ? "Syncing..." : "Sync with Google Calendar"}
-            </button>
-            {syncResult && (
-              <span className={`text-sm ${syncResult.startsWith("Sync failed") ? "text-red-400" : "text-green-400"}`}>
-                {syncResult}
-              </span>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
