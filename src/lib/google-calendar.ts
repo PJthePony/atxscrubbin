@@ -3,18 +3,14 @@ import { google, calendar_v3 } from "googleapis";
 // -- Singleton client --
 
 let calendarClient: calendar_v3.Calendar | null = null;
-let initAttempted = false;
 
 function getCalendar(): calendar_v3.Calendar | null {
   if (calendarClient) return calendarClient;
-  if (initAttempted) return null;
-  initAttempted = true;
 
   const clientEmail = process.env.GOOGLE_CALENDAR_CLIENT_EMAIL;
   const privateKey = process.env.GOOGLE_CALENDAR_PRIVATE_KEY;
 
   if (!clientEmail || !privateKey) {
-    console.warn("[Google Calendar] Missing GOOGLE_CALENDAR_CLIENT_EMAIL or GOOGLE_CALENDAR_PRIVATE_KEY — calendar sync disabled");
     return null;
   }
 
@@ -33,12 +29,17 @@ const CALENDAR_ID = () =>
 
 const TIMEZONE = "America/Chicago";
 
+// Ensure time has seconds (HH:MM -> HH:MM:00, HH:MM:SS stays as-is)
+function normalizeTime(t: string): string {
+  return t.length === 5 ? `${t}:00` : t;
+}
+
 // -- Color IDs (Google Calendar palette) --
 const COLOR = {
-  availability: "2",   // Sage green
-  confirmed: "9",      // Blueberry
-  in_progress: "6",    // Tangerine
-  completed: "10",     // Basil (dark green)
+  availability: "8",   // Graphite
+  confirmed: "6",      // Tangerine
+  in_progress: "4",    // Flamingo
+  completed: "10",     // Basil
 } as const;
 
 function bookingColor(status: string): string {
@@ -66,8 +67,8 @@ export async function syncAvailabilityEvent(
   const event: calendar_v3.Schema$Event = {
     summary: `${teamMemberName} Available`,
     description: "Team member available for bookings",
-    start: { dateTime: `${date}T${startTime}:00`, timeZone: TIMEZONE },
-    end: { dateTime: `${date}T${endTime}:00`, timeZone: TIMEZONE },
+    start: { dateTime: `${date}T${normalizeTime(startTime)}`, timeZone: TIMEZONE },
+    end: { dateTime: `${date}T${normalizeTime(endTime)}`, timeZone: TIMEZONE },
     colorId: COLOR.availability,
   };
 
@@ -148,8 +149,8 @@ export async function syncBookingEvent(
     summary: `${customerName} — ${carSizeName}`,
     description: lines.join("\n"),
     location: address,
-    start: { dateTime: `${date}T${startTime}:00`, timeZone: TIMEZONE },
-    end: { dateTime: `${date}T${endTime}:00`, timeZone: TIMEZONE },
+    start: { dateTime: `${date}T${normalizeTime(startTime)}`, timeZone: TIMEZONE },
+    end: { dateTime: `${date}T${normalizeTime(endTime)}`, timeZone: TIMEZONE },
     colorId: bookingColor(status),
   };
 
