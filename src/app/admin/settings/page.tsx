@@ -148,7 +148,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
           <button
             onClick={save}
             disabled={saving}
@@ -156,15 +156,26 @@ export default function SettingsPage() {
           >
             {saving ? "Saving..." : "Save Settings"}
           </button>
-          <button
-            onClick={syncCalendar}
-            disabled={syncing}
-            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm font-semibold transition hover:border-zinc-500 disabled:opacity-50"
-          >
-            {syncing ? "Syncing..." : "Sync Google Calendar"}
-          </button>
           {saved && <span className="text-sm text-green-400">Saved!</span>}
-          {syncResult && <span className="text-sm text-zinc-400">{syncResult}</span>}
+        </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-4">
+          <div>
+            <h3 className="font-semibold text-sm">Google Calendar</h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Syncs all active availability and bookings to keepaustinscrubbin@gmail.com. Existing events are updated in place — no duplicates.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={syncCalendar}
+              disabled={syncing}
+              className="rounded-lg bg-orange px-5 py-2 text-sm font-semibold transition hover:bg-orange-dark disabled:opacity-50"
+            >
+              {syncing ? "Syncing..." : "Sync Now"}
+            </button>
+            {syncResult && <span className="text-sm text-zinc-400">{syncResult}</span>}
+          </div>
         </div>
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3">

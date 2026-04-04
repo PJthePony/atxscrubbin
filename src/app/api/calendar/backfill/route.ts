@@ -10,12 +10,11 @@ export async function POST() {
     const supabase = createServerClient();
     const results = { availability: { synced: 0, failed: 0 }, bookings: { synced: 0, failed: 0 } };
 
-    // --- Backfill availability overrides ---
+    // --- Sync all active availability overrides (create or update, no duplicates) ---
     const { data: overrides } = await supabase
       .from("availability_overrides")
       .select("id, team_member_id, date, start_time, end_time, google_calendar_event_id")
-      .eq("available", true)
-      .is("google_calendar_event_id", null);
+      .eq("available", true);
 
     const { data: members } = await supabase
       .from("team_members")
@@ -30,14 +29,16 @@ export async function POST() {
           date: override.date,
           startTime: override.start_time || "11:00",
           endTime: override.end_time || "16:00",
-          existingEventId: null,
+          existingEventId: override.google_calendar_event_id,
         });
 
         if (eventId) {
-          await supabase
-            .from("availability_overrides")
-            .update({ google_calendar_event_id: eventId })
-            .eq("id", override.id);
+          if (eventId !== override.google_calendar_event_id) {
+            await supabase
+              .from("availability_overrides")
+              .update({ google_calendar_event_id: eventId })
+              .eq("id", override.id);
+          }
           results.availability.synced++;
         } else {
           results.availability.failed++;
@@ -47,12 +48,11 @@ export async function POST() {
       }
     }
 
-    // --- Backfill bookings ---
+    // --- Sync all active bookings (create or update, no duplicates) ---
     const { data: bookings } = await supabase
       .from("bookings")
       .select("*, customer:customers(full_name), car_size:car_sizes(name), booking_addons(addon:addons(name))")
-      .not("status", "in", '("cancelled","refunded")')
-      .is("google_calendar_event_id", null);
+      .not("status", "in", '("cancelled","refunded")');
 
     for (const booking of bookings || []) {
       try {
@@ -73,14 +73,16 @@ export async function POST() {
           total: booking.total,
           notes: booking.notes,
           addonNames,
-          existingEventId: null,
+          existingEventId: booking.google_calendar_event_id,
         });
 
         if (eventId) {
-          await supabase
-            .from("bookings")
-            .update({ google_calendar_event_id: eventId })
-            .eq("id", booking.id);
+          if (eventId !== booking.google_calendar_event_id) {
+            await supabase
+              .from("bookings")
+              .update({ google_calendar_event_id: eventId })
+              .eq("id", booking.id);
+          }
           results.bookings.synced++;
         } else {
           results.bookings.failed++;
