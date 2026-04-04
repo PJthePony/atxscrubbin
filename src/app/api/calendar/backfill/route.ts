@@ -46,10 +46,18 @@ export async function POST() {
           results.availability.synced++;
         } else {
           results.availability.failed++;
+          if (!results.debug.firstAvailError) {
+            results.debug.firstAvailError = "syncAvailabilityEvent returned null";
+          }
         }
-      } catch {
+      } catch (err) {
         results.availability.failed++;
+        if (!results.debug.firstAvailError) {
+          results.debug.firstAvailError = (err as Error).message;
+        }
       }
+      // Stop after first few to avoid timeout - just need to see if it works
+      if (results.availability.synced + results.availability.failed >= 3) break;
     }
 
     // --- Sync all active bookings (create or update, no duplicates) ---
@@ -93,10 +101,17 @@ export async function POST() {
           results.bookings.synced++;
         } else {
           results.bookings.failed++;
+          if (!results.debug.firstBookingError) {
+            results.debug.firstBookingError = "syncBookingEvent returned null";
+          }
         }
-      } catch {
+      } catch (err) {
         results.bookings.failed++;
+        if (!results.debug.firstBookingError) {
+          results.debug.firstBookingError = (err as Error).message;
+        }
       }
+      if (results.bookings.synced + results.bookings.failed >= 3) break;
     }
 
     return NextResponse.json({ success: true, results });
