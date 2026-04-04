@@ -183,6 +183,14 @@ function BookContent() {
 
   // Fetch which dates have availability when entering datetime step
   const [datesFetched, setDatesFetched] = useState(false);
+
+  // Reset datesFetched when duration changes (e.g. user changed size/addons and came back)
+  const [prevDuration, setPrevDuration] = useState(totalDuration);
+  if (totalDuration !== prevDuration) {
+    setPrevDuration(totalDuration);
+    setDatesFetched(false);
+  }
+
   useEffect(() => {
     if (step !== "datetime" || datesFetched) return;
     setDatesFetched(true);
@@ -818,8 +826,8 @@ function BookContent() {
                     </p>
                     <p className="text-sm text-red-600 mt-1">
                       Think we got it wrong? Reach out at{" "}
-                      <a href="mailto:atxscrubbin@gmail.com" className="underline font-medium">
-                        atxscrubbin@gmail.com
+                      <a href="mailto:keep.austin.scrubbin@gmail.com" className="underline font-medium">
+                        keep.austin.scrubbin@gmail.com
                       </a>{" "}
                       and we&apos;ll see what we can do.
                     </p>

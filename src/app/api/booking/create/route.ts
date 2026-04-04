@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
-import { getAvailableSlots } from "@/lib/scheduling";
+import { isSlotAvailable } from "@/lib/scheduling";
 import { syncBookingEvent } from "@/lib/google-calendar";
+import { sendEmail, bookingConfirmationEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,6 @@ export async function POST(request: NextRequest) {
     notes,
   } = body;
 
-  // Validate required fields
   if (!car_size_id || !address || !scheduled_date || !scheduled_start || !customer_name || !customer_email || !customer_phone) {
     return NextResponse.json(
       { error: "Missing required fields" },
@@ -31,70 +31,68 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerClient();
+  const hasAddons = addon_ids && addon_ids.length > 0;
 
-  // 1. Get car size for pricing and duration
-  const { data: carSize, error: sizeError } = await supabase
-    .from("car_sizes")
-    .select("*")
-    .eq("id", car_size_id)
-    .single();
+  // 1. Fetch all independent data in parallel
+  const [carSizeResult, addonResult, settingsResult, teamResult, customerResult] = await Promise.all([
+    supabase.from("car_sizes").select("*").eq("id", car_size_id).single(),
+    hasAddons
+      ? supabase.from("addons").select("id, name, price, time_minutes").in("id", addon_ids)
+      : Promise.resolve({ data: [] as { id: string; name: string; price: number; time_minutes: number }[], error: null }),
+    supabase.from("settings").select("key, value"),
+    supabase.from("team_members").select("id").eq("active", true),
+    supabase.from("customers").select("id").eq("email", customer_email).limit(1).single(),
+  ]);
 
-  if (sizeError || !carSize) {
+  const carSize = carSizeResult.data;
+  if (carSizeResult.error || !carSize) {
     return NextResponse.json({ error: "Invalid car size" }, { status: 400 });
   }
 
-  // 2. Get addons for pricing and duration
-  let addons: { id: string; name: string; price: number; time_minutes: number }[] = [];
-  if (addon_ids && addon_ids.length > 0) {
-    const { data: addonData, error: addonError } = await supabase
-      .from("addons")
-      .select("id, name, price, time_minutes")
-      .in("id", addon_ids);
+  const addons = (addonResult.data || []) as { id: string; name: string; price: number; time_minutes: number }[];
 
-    if (addonError) {
-      return NextResponse.json({ error: "Failed to load addons" }, { status: 500 });
-    }
-    addons = addonData || [];
+  // Parse settings
+  const settingsMap: Record<string, string> = {};
+  for (const row of settingsResult.data || []) {
+    settingsMap[row.key] = typeof row.value === "string" ? row.value : JSON.stringify(row.value);
   }
+  const travelBuffer = parseInt(settingsMap.travel_buffer_minutes || "10", 10);
+  const minTeam = parseInt(settingsMap.min_team_members_per_booking || "2", 10);
+  const activeMembers = (teamResult.data || []).slice(0, minTeam);
 
-  // 3. Calculate totals
-  const addonTotal = addons.reduce((sum, a) => sum + a.price, 0);
+  // 2. Calculate totals
+  const addonTotal = addons.reduce((sum, a) => sum + Number(a.price), 0);
   const addonTime = addons.reduce((sum, a) => sum + a.time_minutes, 0);
   const totalDuration = carSize.wash_time_minutes + addonTime;
-  const subtotal = carSize.base_price + addonTotal;
-  const total = subtotal; // No tax for now
+  const subtotal = Number(carSize.base_price) + addonTotal;
+  const total = subtotal;
 
-  // 4. Verify the slot is still available
-  const slots = await getAvailableSlots(scheduled_date, totalDuration);
-  const slotAvailable = slots.some((s) => s.start === scheduled_start);
+  // 3. Lightweight slot availability check
+  const { data: bookingRows } = await supabase
+    .from("bookings")
+    .select("scheduled_start, scheduled_end")
+    .eq("scheduled_date", scheduled_date)
+    .not("status", "in", '("cancelled","refunded")');
 
-  if (!slotAvailable) {
+  if (!isSlotAvailable(scheduled_start, totalDuration, travelBuffer, bookingRows || [])) {
     return NextResponse.json(
       { error: "This time slot is no longer available. Please choose another." },
       { status: 409 }
     );
   }
 
-  // 5. Calculate end time
+  // 4. Calculate end time
   const [h, m] = scheduled_start.split(":").map(Number);
   const endMinutes = h * 60 + m + totalDuration;
   const endH = Math.floor(endMinutes / 60);
   const endM = endMinutes % 60;
   const scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
 
-  // 6. Find or create customer
+  // 5. Find or create customer
   let customerId: string;
 
-  const { data: existingCustomer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("email", customer_email)
-    .limit(1)
-    .single();
-
-  if (existingCustomer) {
-    customerId = existingCustomer.id;
-    // Update their info
+  if (customerResult.data) {
+    customerId = customerResult.data.id;
     await supabase
       .from("customers")
       .update({
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
     customerId = newCustomer.id;
   }
 
-  // 7. Create booking
+  // 6. Create booking
   const { data: booking, error: bookingError } = await supabase
     .from("bookings")
     .insert({
@@ -156,46 +154,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 8. Insert booking addons
-  if (addons.length > 0) {
-    const addonRows = addons.map((a) => ({
-      booking_id: booking.id,
-      addon_id: a.id,
-      price_at_booking: a.price,
-      time_at_booking: a.time_minutes,
-    }));
+  // 7. Insert addons + assign team + calendar sync + confirmation email in parallel
+  const addonNames = addons.map((a) => a.name);
 
-    await supabase.from("booking_addons").insert(addonRows);
-  }
-
-  // 9. Assign team members (first minTeam available members)
-  const { data: settingsRows } = await supabase
-    .from("settings")
-    .select("key, value")
-    .eq("key", "min_team_members_per_booking");
-
-  const minTeam = settingsRows?.[0]
-    ? parseInt(String(settingsRows[0].value), 10)
-    : 2;
-
-  const { data: activeMembers } = await supabase
-    .from("team_members")
-    .select("id")
-    .eq("active", true)
-    .limit(minTeam);
-
-  if (activeMembers && activeMembers.length > 0) {
-    const teamRows = activeMembers.map((m) => ({
-      booking_id: booking.id,
-      team_member_id: m.id,
-    }));
-
-    await supabase.from("booking_team_members").insert(teamRows);
-  }
-
-  // Sync to Google Calendar
-  try {
-    const eventId = await syncBookingEvent({
+  const [, , calResult] = await Promise.all([
+    // Insert booking addons
+    addons.length > 0
+      ? supabase.from("booking_addons").insert(
+          addons.map((a) => ({
+            booking_id: booking.id,
+            addon_id: a.id,
+            price_at_booking: a.price,
+            time_at_booking: a.time_minutes,
+          }))
+        )
+      : Promise.resolve(),
+    // Assign team members
+    activeMembers.length > 0
+      ? supabase.from("booking_team_members").insert(
+          activeMembers.map((m) => ({
+            booking_id: booking.id,
+            team_member_id: m.id,
+          }))
+        )
+      : Promise.resolve(),
+    // Sync to Google Calendar
+    syncBookingEvent({
       status: "confirmed",
       customerName: customer_name,
       carSizeName: carSize.name,
@@ -205,17 +189,47 @@ export async function POST(request: NextRequest) {
       address,
       total,
       notes: notes || null,
-      addonNames: addons.map((a) => a.name),
-    });
+      addonNames,
+    }).catch((err) => {
+      console.error("Calendar sync failed:", err);
+      return null;
+    }),
+    // Send confirmation email
+    (async () => {
+      const [eH, eM] = scheduled_start.split(":").map(Number);
+      const eAmpm = eH >= 12 ? "PM" : "AM";
+      const eHour = eH > 12 ? eH - 12 : eH === 0 ? 12 : eH;
+      const emailTimeStr = `${eHour}:${eM.toString().padStart(2, "0")} ${eAmpm}`;
+      const emailDateObj = new Date(scheduled_date + "T12:00:00");
+      const emailDateStr = emailDateObj.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
 
-    if (eventId) {
-      await supabase
-        .from("bookings")
-        .update({ google_calendar_event_id: eventId })
-        .eq("id", booking.id);
-    }
-  } catch (err) {
-    console.error("Calendar sync failed:", err);
+      const emailHtml = bookingConfirmationEmail({
+        customerName: customer_name,
+        date: emailDateStr,
+        time: emailTimeStr,
+        service: carSize.name || "Car Wash",
+        servicePrice: Number(carSize.base_price),
+        addons: addons.map((a) => ({ name: a.name, price: Number(a.price) })),
+        tipAmount: 0,
+        total,
+        address,
+      });
+
+      await sendEmail(customer_email, "Your car wash is booked! 🤠", emailHtml);
+    })(),
+  ]);
+
+  // Store calendar event ID if synced
+  if (calResult) {
+    await supabase
+      .from("bookings")
+      .update({ google_calendar_event_id: calResult as string })
+      .eq("id", booking.id);
   }
 
   return NextResponse.json({

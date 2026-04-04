@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
-import { getAvailableSlots } from "@/lib/scheduling";
+import { isSlotAvailable } from "@/lib/scheduling";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +20,10 @@ export async function POST(request: NextRequest) {
     customer_email,
     customer_phone,
     sms_opt_in,
-    email_opt_in,
     notes,
     tip_amount,
   } = body;
 
-  // Validate required fields
   if (
     !car_size_id ||
     !address ||
@@ -43,64 +41,52 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerClient();
 
-  // 1. Get car size
-  const { data: carSize, error: sizeError } = await supabase
-    .from("car_sizes")
-    .select("*")
-    .eq("id", car_size_id)
-    .single();
+  // 1. Fetch all independent data in parallel
+  const hasAddons = addon_ids && addon_ids.length > 0;
 
-  if (sizeError || !carSize) {
+  const [carSizeResult, addonResult, settingsResult, teamResult, customerResult] = await Promise.all([
+    // Car size
+    supabase.from("car_sizes").select("*").eq("id", car_size_id).single(),
+    // Addons (if any)
+    hasAddons
+      ? supabase.from("addons").select("id, name, price, time_minutes").in("id", addon_ids)
+      : Promise.resolve({ data: [] as { id: string; name: string; price: number; time_minutes: number }[], error: null }),
+    // Settings
+    supabase.from("settings").select("key, value"),
+    // Active team members
+    supabase.from("team_members").select("id").eq("active", true),
+    // Existing customer lookup
+    supabase.from("customers").select("id").eq("email", customer_email).limit(1).single(),
+  ]);
+
+  const carSize = carSizeResult.data;
+  if (carSizeResult.error || !carSize) {
     return NextResponse.json({ error: "Invalid car size" }, { status: 400 });
   }
 
-  // 2. Get addons
-  let addons: { id: string; name: string; price: number; time_minutes: number }[] = [];
-  if (addon_ids && addon_ids.length > 0) {
-    const { data: addonData } = await supabase
-      .from("addons")
-      .select("id, name, price, time_minutes")
-      .in("id", addon_ids);
-    addons = addonData || [];
-  }
+  const addons = (addonResult.data || []) as { id: string; name: string; price: number; time_minutes: number }[];
 
-  // 3. Calculate totals
+  // Parse settings
+  const settingsMap: Record<string, string> = {};
+  for (const row of settingsResult.data || []) {
+    settingsMap[row.key] = typeof row.value === "string" ? row.value : JSON.stringify(row.value);
+  }
+  const travelBuffer = parseInt(settingsMap.travel_buffer_minutes || "10", 10);
+  const minTeam = parseInt(settingsMap.min_team_members_per_booking || "2", 10);
+  const activeMembers = (teamResult.data || []).slice(0, minTeam);
+
+  // 2. Calculate totals
   const addonTotal = addons.reduce((sum, a) => sum + Number(a.price), 0);
   const addonTime = addons.reduce((sum, a) => sum + a.time_minutes, 0);
   const totalDuration = carSize.wash_time_minutes + addonTime;
   const subtotal = Number(carSize.base_price) + addonTotal;
   const total = subtotal;
 
-  // 4. Verify slot is still available
-  const slots = await getAvailableSlots(scheduled_date, totalDuration);
-  const slotAvailable = slots.some((s) => s.start === scheduled_start);
-
-  if (!slotAvailable) {
-    return NextResponse.json(
-      { error: "This time slot is no longer available. Please choose another." },
-      { status: 409 }
-    );
-  }
-
-  // 5. Calculate end time
-  const [h, m] = scheduled_start.split(":").map(Number);
-  const endMinutes = h * 60 + m + totalDuration;
-  const endH = Math.floor(endMinutes / 60);
-  const endM = endMinutes % 60;
-  const scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
-
-  // 6. Find or create customer
+  // 3. Find or create customer
   let customerId: string;
 
-  const { data: existingCustomer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("email", customer_email)
-    .limit(1)
-    .single();
-
-  if (existingCustomer) {
-    customerId = existingCustomer.id;
+  if (customerResult.data) {
+    customerId = customerResult.data.id;
     await supabase
       .from("customers")
       .update({
@@ -110,7 +96,6 @@ export async function POST(request: NextRequest) {
         lat: lat || null,
         lng: lng || null,
         sms_opt_in: sms_opt_in ?? false,
-        email_opt_in: email_opt_in ?? false,
       })
       .eq("id", customerId);
   } else {
@@ -124,7 +109,6 @@ export async function POST(request: NextRequest) {
         lat: lat || null,
         lng: lng || null,
         sms_opt_in: sms_opt_in ?? false,
-        email_opt_in: email_opt_in ?? false,
       })
       .select("id")
       .single();
@@ -138,24 +122,48 @@ export async function POST(request: NextRequest) {
     customerId = newCustomer.id;
   }
 
-  // 6b. Clean up abandoned (unpaid) bookings — from this customer and stale ones from anyone
-  await supabase
-    .from("bookings")
-    .delete()
-    .eq("customer_id", customerId)
-    .eq("status", "confirmed")
-    .is("stripe_payment_intent_id", null);
-
-  // Also clean up any unpaid bookings older than 30 minutes from any customer
+  // 4. Clean up abandoned bookings BEFORE slot check
+  // This prevents the user's own abandoned booking from blocking their new attempt
   const staleThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-  await supabase
-    .from("bookings")
-    .delete()
-    .eq("status", "confirmed")
-    .is("stripe_payment_intent_id", null)
-    .lt("created_at", staleThreshold);
+  await Promise.all([
+    // Remove this customer's unpaid bookings
+    supabase
+      .from("bookings")
+      .delete()
+      .eq("customer_id", customerId)
+      .eq("status", "confirmed")
+      .is("stripe_payment_intent_id", null),
+    // Remove any stale unpaid bookings older than 30 minutes
+    supabase
+      .from("bookings")
+      .delete()
+      .eq("status", "confirmed")
+      .is("stripe_payment_intent_id", null)
+      .lt("created_at", staleThreshold),
+  ]);
 
-  // 7. Create booking with status 'confirmed' (payment pending)
+  // 5. Lightweight slot availability check (single query instead of full recalculation)
+  const { data: bookingRows } = await supabase
+    .from("bookings")
+    .select("scheduled_start, scheduled_end")
+    .eq("scheduled_date", scheduled_date)
+    .not("status", "in", '("cancelled","refunded")');
+
+  if (!isSlotAvailable(scheduled_start, totalDuration, travelBuffer, bookingRows || [])) {
+    return NextResponse.json(
+      { error: "This time slot is no longer available. Please choose another." },
+      { status: 409 }
+    );
+  }
+
+  // 6. Calculate end time
+  const [h, m] = scheduled_start.split(":").map(Number);
+  const endMinutes = h * 60 + m + totalDuration;
+  const endH = Math.floor(endMinutes / 60);
+  const endM = endMinutes % 60;
+  const scheduled_end = `${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}`;
+
+  // 7. Create booking
   const { data: booking, error: bookingError } = await supabase
     .from("bookings")
     .insert({
@@ -184,43 +192,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 8. Insert booking addons
-  if (addons.length > 0) {
-    await supabase.from("booking_addons").insert(
-      addons.map((a) => ({
-        booking_id: booking.id,
-        addon_id: a.id,
-        price_at_booking: a.price,
-        time_at_booking: a.time_minutes,
-      }))
-    );
-  }
+  // 8. Insert addons + assign team members in parallel
+  await Promise.all([
+    addons.length > 0
+      ? supabase.from("booking_addons").insert(
+          addons.map((a) => ({
+            booking_id: booking.id,
+            addon_id: a.id,
+            price_at_booking: a.price,
+            time_at_booking: a.time_minutes,
+          }))
+        )
+      : Promise.resolve(),
+    activeMembers.length > 0
+      ? supabase.from("booking_team_members").insert(
+          activeMembers.map((m) => ({
+            booking_id: booking.id,
+            team_member_id: m.id,
+          }))
+        )
+      : Promise.resolve(),
+  ]);
 
-  // 9. Assign team members
-  const { data: settingsRows } = await supabase
-    .from("settings")
-    .select("key, value")
-    .eq("key", "min_team_members_per_booking");
-  const minTeam = settingsRows?.[0]
-    ? parseInt(String(settingsRows[0].value), 10)
-    : 2;
-
-  const { data: activeMembers } = await supabase
-    .from("team_members")
-    .select("id")
-    .eq("active", true)
-    .limit(minTeam);
-
-  if (activeMembers && activeMembers.length > 0) {
-    await supabase.from("booking_team_members").insert(
-      activeMembers.map((m) => ({
-        booking_id: booking.id,
-        team_member_id: m.id,
-      }))
-    );
-  }
-
-  // 10. Build Stripe line items
+  // 9. Build Stripe line items
   const lineItems: { price_data: { currency: string; product_data: { name: string; description?: string }; unit_amount: number }; quantity: number }[] = [
     {
       price_data: {
@@ -246,7 +240,6 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // 10b. Add tip line item if applicable
   const parsedTip = tip_amount && Number(tip_amount) > 0 ? Number(tip_amount) : 0;
   if (parsedTip > 0) {
     lineItems.push({
@@ -259,7 +252,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // 11. Create Stripe Checkout Session
+  // 10. Create Stripe Checkout Session
   const stripe = getStripe();
   const origin = request.headers.get("origin") || "http://localhost:3000";
 
@@ -270,6 +263,9 @@ export async function POST(request: NextRequest) {
     line_items: lineItems,
     metadata: {
       booking_id: booking.id,
+    },
+    payment_intent_data: {
+      receipt_email: undefined, // Suppress Stripe receipt — we send our own
     },
     success_url: `${origin}/book/success?booking_id=${booking.id}`,
     cancel_url: `${origin}/book?cancelled=true`,

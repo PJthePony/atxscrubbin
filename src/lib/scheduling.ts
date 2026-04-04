@@ -145,6 +145,37 @@ export async function getAvailableSlots(
   return slots;
 }
 
+/**
+ * Lightweight check: is a specific slot available on a given date?
+ * Uses pre-fetched bookings to avoid extra DB calls.
+ */
+export function isSlotAvailable(
+  requestedStart: string, // "HH:MM"
+  durationMinutes: number,
+  travelBuffer: number,
+  existingBookings: BookingRow[]
+): boolean {
+  const slotStartMin = timeToMinutes(requestedStart);
+  const slotEndMin = slotStartMin + durationMinutes;
+
+  // Check the slot fits within the service window
+  if (slotStartMin < timeToMinutes(WINDOW_START) || slotEndMin > timeToMinutes(WINDOW_END)) {
+    return false;
+  }
+
+  // Check for overlap with any existing booking (including travel buffer)
+  const hasConflict = existingBookings.some((b) => {
+    const bStartMin = timeToMinutes(b.scheduled_start.substring(0, 5));
+    const bEndMin = timeToMinutes(b.scheduled_end.substring(0, 5));
+    return (
+      slotStartMin < bEndMin + travelBuffer &&
+      slotEndMin + travelBuffer > bStartMin
+    );
+  });
+
+  return !hasConflict;
+}
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { withAdmin } from "@/lib/admin-guard";
 import { sendSMS, completionText } from "@/lib/twilio";
+import { sendEmail, bookingConfirmationEmail } from "@/lib/email";
 import { syncBookingEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
@@ -383,6 +384,39 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error("Calendar sync failed:", err);
+    }
+
+    // Send confirmation email
+    if (customer_email) {
+      try {
+        const [eH, eM] = scheduled_start.split(":").map(Number);
+        const eAmpm = eH >= 12 ? "PM" : "AM";
+        const eHour = eH > 12 ? eH - 12 : eH === 0 ? 12 : eH;
+        const emailTimeStr = `${eHour}:${eM.toString().padStart(2, "0")} ${eAmpm}`;
+        const emailDateObj = new Date(scheduled_date + "T12:00:00");
+        const emailDateStr = emailDateObj.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+
+        const emailHtml = bookingConfirmationEmail({
+          customerName: customer_name,
+          date: emailDateStr,
+          time: emailTimeStr,
+          service: carSize.name || "Car Wash",
+          servicePrice: Number(carSize.base_price),
+          addons: addons.map((a) => ({ name: a.name, price: Number(a.price) })),
+          tipAmount: 0,
+          total,
+          address,
+        });
+
+        await sendEmail(customer_email, "Your car wash is booked! 🤠", emailHtml);
+      } catch (err) {
+        console.error("Confirmation email failed:", err);
+      }
     }
 
     return NextResponse.json({ booking_id: booking.id, total });

@@ -5,6 +5,7 @@ import {
   dayBeforeReminderText,
   hourBeforeReminderText,
 } from "@/lib/twilio";
+import { sendEmail, dayOfReminderEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -114,5 +115,48 @@ export async function GET(request: NextRequest) {
     sent++;
   }
 
-  return NextResponse.json({ ok: true, sent });
+  // ---- Day-of email reminders ----
+  // Send to bookings happening today that haven't been emailed yet
+  let emailsSent = 0;
+  const { data: todayEmailBookings } = await supabase
+    .from("bookings")
+    .select("id, scheduled_start, address, car_size:car_sizes(name), customer:customers(full_name, email)")
+    .eq("scheduled_date", today)
+    .eq("status", "confirmed")
+    .eq("reminder_email_sent", false);
+
+  for (const booking of todayEmailBookings || []) {
+    const customer = booking.customer as unknown as { full_name: string; email: string } | null;
+    if (!customer?.email) continue;
+
+    const carSize = booking.car_size as unknown as { name: string } | null;
+
+    const [bH, bM] = booking.scheduled_start.split(":").map(Number);
+    const ampm = bH >= 12 ? "PM" : "AM";
+    const hour = bH > 12 ? bH - 12 : bH === 0 ? 12 : bH;
+    const timeStr = `${hour}:${bM.toString().padStart(2, "0")} ${ampm}`;
+
+    const emailHtml = dayOfReminderEmail({
+      customerName: customer.full_name,
+      time: timeStr,
+      service: carSize?.name || "Car Wash",
+      address: booking.address,
+    });
+
+    const result = await sendEmail(
+      customer.email,
+      `Car wash day! See you today at ${timeStr} 🧽`,
+      emailHtml
+    );
+
+    if (result) {
+      await supabase
+        .from("bookings")
+        .update({ reminder_email_sent: true })
+        .eq("id", booking.id);
+      emailsSent++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, sent, emailsSent });
 }

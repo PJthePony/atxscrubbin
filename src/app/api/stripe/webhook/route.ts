@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { sendSMS, bookingConfirmationText, smsOptInText } from "@/lib/twilio";
+import { sendEmail, bookingConfirmationEmail } from "@/lib/email";
 import { syncBookingEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,53 @@ export async function POST(request: NextRequest) {
             booking.customer.phone,
             smsOptInText({ customerName: booking.customer.full_name })
           );
+        }
+      }
+
+      // Send confirmation email with receipt
+      if (booking?.customer?.email) {
+        const [eH, eM] = booking.scheduled_start.split(":").map(Number);
+        const eAmpm = eH >= 12 ? "PM" : "AM";
+        const eHour = eH > 12 ? eH - 12 : eH === 0 ? 12 : eH;
+        const emailTimeStr = `${eHour}:${eM.toString().padStart(2, "0")} ${eAmpm}`;
+
+        const emailDateObj = new Date(booking.scheduled_date + "T12:00:00");
+        const emailDateStr = emailDateObj.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+
+        const bookingAddons = ((booking.booking_addons || []) as unknown as { addon: { name: string; price?: number }; price_at_booking: number }[]);
+        const addonItems = bookingAddons.map((ba) => ({
+          name: ba.addon?.name || "Add-on",
+          price: ba.price_at_booking || 0,
+        }));
+
+        const emailHtml = bookingConfirmationEmail({
+          customerName: booking.customer.full_name,
+          date: emailDateStr,
+          time: emailTimeStr,
+          service: booking.car_size?.name || "Car Wash",
+          servicePrice: booking.subtotal || booking.total,
+          addons: addonItems,
+          tipAmount: booking.tip_amount || 0,
+          total: booking.total,
+          address: booking.address,
+        });
+
+        const emailResult = await sendEmail(
+          booking.customer.email,
+          "Your car wash is booked! 🤠",
+          emailHtml
+        );
+
+        if (emailResult) {
+          await supabase
+            .from("bookings")
+            .update({ confirmation_email_sent: true })
+            .eq("id", bookingId);
         }
       }
 

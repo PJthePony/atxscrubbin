@@ -76,7 +76,7 @@ export default function PrivacyPage() {
             </p>
             <p className="mt-3">
               To opt out of text messages, reply <strong>STOP</strong> to any message. For help, reply{" "}
-              <strong>HELP</strong> or contact us at keepaustinscrubbin@gmail.com.
+              <strong>HELP</strong> or contact us at keep.austin.scrubbin@gmail.com.
             </p>
           </section>
 
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
             <p>
               We retain your personal information for as long as necessary to provide our services and fulfill
               the purposes described in this policy. You may request deletion of your data at any time by contacting
-              us at keepaustinscrubbin@gmail.com.
+              us at keep.austin.scrubbin@gmail.com.
             </p>
           </section>
 
@@ -151,7 +151,7 @@ export default function PrivacyPage() {
             <p className="mt-2">
               <strong>Keep Austin Scrubbin&apos;</strong><br />
               Austin, Texas<br />
-              Email: keepaustinscrubbin@gmail.com
+              Email: keep.austin.scrubbin@gmail.com
             </p>
           </section>
         </div>

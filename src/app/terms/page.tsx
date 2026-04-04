@@ -83,11 +83,11 @@ export default function TermsPage() {
             </p>
             <p className="mt-3">
               <strong>Help:</strong> For help with text messaging, reply <strong>HELP</strong> to any message
-              or contact us at keepaustinscrubbin@gmail.com.
+              or contact us at keep.austin.scrubbin@gmail.com.
             </p>
             <p className="mt-3">
               <strong>Support Contact:</strong> Keep Austin Scrubbin&apos;, Austin, TX —
-              keepaustinscrubbin@gmail.com
+              keep.austin.scrubbin@gmail.com
             </p>
             <p className="mt-3">
               <strong>Carriers:</strong> Compatible with all major US carriers. Carriers are not liable for
@@ -144,7 +144,7 @@ export default function TermsPage() {
             <p className="mt-2">
               <strong>Keep Austin Scrubbin&apos;</strong><br />
               Austin, Texas<br />
-              Email: keepaustinscrubbin@gmail.com
+              Email: keep.austin.scrubbin@gmail.com
             </p>
           </section>
         </div>

@@ -99,5 +99,5 @@ export function smsOptInConfirmedText() {
 }
 
 export function smsDefaultReplyText() {
-  return `Text Y to opt in to appointment reminders, or STOP to opt out. For help, email atxscrubbin@gmail.com — Keep Austin Scrubbin'`;
+  return `Text Y to opt in to appointment reminders, or STOP to opt out. For help, email keep.austin.scrubbin@gmail.com — Keep Austin Scrubbin'`;
 }

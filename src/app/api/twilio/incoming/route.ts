@@ -7,6 +7,7 @@ import {
   smsDefaultReplyText,
   bookingConfirmationText,
 } from "@/lib/twilio";
+import { sendEmail } from "@/lib/email";
 import twilio from "twilio";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,23 @@ export async function POST(request: NextRequest) {
   if (!customer) {
     // Unknown number — send default reply
     await sendSMS(from, smsDefaultReplyText());
+
+    // Forward to email so the team can see it
+    await sendEmail(
+      "keep.austin.scrubbin@gmail.com",
+      `Text from unknown number (${from})`,
+      `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
+        <h2 style="color:#E06030;margin-bottom:16px;">Incoming Text Message</h2>
+        <p><strong>From:</strong> ${from} (not in customer database)</p>
+        <p><strong>Message:</strong></p>
+        <blockquote style="border-left:3px solid #E06030;padding:8px 16px;margin:12px 0;color:#555;background:#FAF5F0;border-radius:4px;">
+          ${body}
+        </blockquote>
+        <hr style="border:none;border-top:1px solid #E8D5C0;margin:24px 0;">
+        <p style="font-size:13px;color:#999;">This text was sent to the Keep Austin Scrubbin' phone line. The sender received an auto-reply with opt-in instructions.</p>
+      </div>`
+    );
+
     return new NextResponse(twimlResponse(), {
       status: 200,
       headers: { "Content-Type": "text/xml" },
@@ -113,6 +131,23 @@ export async function POST(request: NextRequest) {
     // Any other message — send default reply
     // Note: STOP/UNSUBSCRIBE are handled automatically by Twilio
     await sendSMS(customer.phone, smsDefaultReplyText());
+
+    // Forward the message to email so the team can see it
+    const customerName = customer.full_name || "Unknown";
+    await sendEmail(
+      "keep.austin.scrubbin@gmail.com",
+      `Text from ${customerName} (${from})`,
+      `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
+        <h2 style="color:#E06030;margin-bottom:16px;">Incoming Text Message</h2>
+        <p><strong>From:</strong> ${customerName} (${from})</p>
+        <p><strong>Message:</strong></p>
+        <blockquote style="border-left:3px solid #E06030;padding:8px 16px;margin:12px 0;color:#555;background:#FAF5F0;border-radius:4px;">
+          ${body}
+        </blockquote>
+        <hr style="border:none;border-top:1px solid #E8D5C0;margin:24px 0;">
+        <p style="font-size:13px;color:#999;">This text was sent to the Keep Austin Scrubbin' phone line. The customer received an auto-reply with opt-in instructions.</p>
+      </div>`
+    );
   }
 
   return new NextResponse(twimlResponse(), {

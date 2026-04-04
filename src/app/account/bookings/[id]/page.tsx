@@ -368,10 +368,10 @@ export default function BookingDetailPage() {
                   Cancellations must be made at least 24 hours before your
                   appointment. Need help? Email us at{" "}
                   <a
-                    href="mailto:keepaustinscrubbin@gmail.com"
+                    href="mailto:keep.austin.scrubbin@gmail.com"
                     className="text-orange hover:text-orange-dark"
                   >
-                    keepaustinscrubbin@gmail.com
+                    keep.austin.scrubbin@gmail.com
                   </a>
                 </p>
               )}
