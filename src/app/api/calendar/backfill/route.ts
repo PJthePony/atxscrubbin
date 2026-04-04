@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   return withAdmin(async () => {
     const supabase = createServerClient();
-    const results = { availability: { synced: 0, failed: 0 }, bookings: { synced: 0, failed: 0 } };
+    const results = { availability: { synced: 0, failed: 0, found: 0 }, bookings: { synced: 0, failed: 0, found: 0 }, debug: {} as Record<string, unknown> };
 
     // --- Sync all active availability overrides (create or update, no duplicates) ---
-    const { data: overrides } = await supabase
+    const { data: overrides, error: overridesError } = await supabase
       .from("availability_overrides")
       .select("id, team_member_id, date, start_time, end_time, google_calendar_event_id")
       .eq("available", true);
@@ -21,6 +21,10 @@ export async function POST() {
       .select("id, display_name");
 
     const memberMap = Object.fromEntries((members || []).map((m) => [m.id, m.display_name]));
+
+    results.availability.found = (overrides || []).length;
+    results.debug.overridesError = overridesError?.message || null;
+    results.debug.membersCount = (members || []).length;
 
     for (const override of overrides || []) {
       try {
@@ -49,10 +53,13 @@ export async function POST() {
     }
 
     // --- Sync all active bookings (create or update, no duplicates) ---
-    const { data: bookings } = await supabase
+    const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("*, customer:customers(full_name), car_size:car_sizes(name), booking_addons(addon:addons(name))")
       .not("status", "in", '("cancelled","refunded")');
+
+    results.bookings.found = (bookings || []).length;
+    results.debug.bookingsError = bookingsError?.message || null;
 
     for (const booking of bookings || []) {
       try {

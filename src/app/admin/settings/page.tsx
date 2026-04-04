@@ -69,7 +69,8 @@ export default function SettingsPage() {
       const data = await res.json();
       if (data.success) {
         const { availability, bookings } = data.results;
-        setSyncResult(`Synced ${availability.synced} availability slots and ${bookings.synced} bookings to Google Calendar.`);
+        const debug = data.results.debug ? ` (found: ${availability.found}/${bookings.found}, ${JSON.stringify(data.results.debug)})` : "";
+        setSyncResult(`Synced ${availability.synced} availability slots and ${bookings.synced} bookings to Google Calendar.${debug}`);
       } else {
         setSyncResult("Sync failed: " + (data.error || "Unknown error"));
       }
