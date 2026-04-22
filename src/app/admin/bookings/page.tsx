@@ -51,6 +51,7 @@ interface AddonOption {
 }
 
 const STATUS_COLORS: Record<string, string> = {
+  pending: "bg-zinc-200 text-zinc-700",
   confirmed: "bg-blue-100 text-blue-800",
   in_progress: "bg-yellow-100 text-yellow-800",
   completed: "bg-green-100 text-green-800",
@@ -58,7 +59,7 @@ const STATUS_COLORS: Record<string, string> = {
   refunded: "bg-zinc-100 text-zinc-600",
 };
 
-const STATUS_OPTIONS = ["confirmed", "in_progress", "completed", "cancelled"];
+const STATUS_OPTIONS = ["pending", "confirmed", "in_progress", "completed", "cancelled"];
 
 interface BookingForm {
   customer_name: string;

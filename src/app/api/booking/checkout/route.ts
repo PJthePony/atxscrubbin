@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { isSlotAvailable } from "@/lib/scheduling";
+import { decideCleanupAction } from "@/lib/booking-cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -122,25 +123,49 @@ export async function POST(request: NextRequest) {
     customerId = newCustomer.id;
   }
 
-  // 4. Clean up abandoned bookings BEFORE slot check
-  // This prevents the user's own abandoned booking from blocking their new attempt
+  // 4. Clean up abandoned "pending" bookings BEFORE slot check. A booking
+  // stays in 'pending' status until the Stripe webhook confirms payment.
+  // We still verify each row with Stripe before deletion in case a webhook
+  // raced the cleanup — if we find a paid session we self-heal instead.
+  const stripeForCleanup = getStripe();
   const staleThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-  await Promise.all([
-    // Remove this customer's unpaid bookings
-    supabase
-      .from("bookings")
-      .delete()
-      .eq("customer_id", customerId)
-      .eq("status", "confirmed")
-      .is("stripe_payment_intent_id", null),
-    // Remove any stale unpaid bookings older than 30 minutes
-    supabase
-      .from("bookings")
-      .delete()
-      .eq("status", "confirmed")
-      .is("stripe_payment_intent_id", null)
-      .lt("created_at", staleThreshold),
-  ]);
+
+  const { data: candidateRows } = await supabase
+    .from("bookings")
+    .select("id, created_at, customer_id")
+    .eq("status", "pending")
+    .or(`customer_id.eq.${customerId},created_at.lt.${staleThreshold}`);
+
+  for (const row of candidateRows || []) {
+    try {
+      const search = await stripeForCleanup.checkout.sessions.search({
+        query: `metadata['booking_id']:'${row.id}'`,
+        limit: 5,
+      });
+      const decision = decideCleanupAction(search.data);
+      if (decision.action === "heal") {
+        // Self-heal: webhook missed this one. Promote to confirmed and attach the payment intent.
+        await supabase
+          .from("bookings")
+          .update({
+            status: "confirmed",
+            stripe_payment_intent_id: decision.paymentIntentId,
+          })
+          .eq("id", row.id);
+        continue;
+      }
+      // decision.action === "delete" — truly abandoned. Guard with status=pending
+      // to ensure we never delete a confirmed/completed booking even in race conditions.
+      await supabase
+        .from("bookings")
+        .delete()
+        .eq("id", row.id)
+        .eq("status", "pending");
+    } catch (err) {
+      console.error(`Cleanup skipped for booking ${row.id}:`, err);
+      // Fail safe — never delete if we can't verify with Stripe.
+    }
+  }
 
   // 5. Lightweight slot availability check (single query instead of full recalculation)
   const { data: bookingRows } = await supabase
@@ -180,7 +205,7 @@ export async function POST(request: NextRequest) {
       subtotal,
       total,
       tip_amount: tip_amount && Number(tip_amount) > 0 ? Number(tip_amount) : 0,
-      status: "confirmed",
+      status: "pending",
     })
     .select("id")
     .single();
