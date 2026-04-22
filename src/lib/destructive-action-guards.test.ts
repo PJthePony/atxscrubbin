@@ -1,8 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { globSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+
+function walkTs(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkTs(full, out);
+    else if (entry.isFile() && (full.endsWith(".ts") || full.endsWith(".tsx")))
+      out.push(full);
+  }
+  return out;
+}
 
 // These tests scan the source tree for destructive patterns that have caused
 // real incidents. They run as static checks — no runtime dependencies — so
@@ -52,7 +61,7 @@ describe("destructive action guards on bookings", () => {
     // filter in that chain includes `status` = `pending` OR only filters
     // by `id` (a targeted delete of a known row is fine; a broad delete
     // must be scoped to pending rows to be safe).
-    const files = globSync(`${ROOT}/**/*.ts`);
+    const files = walkTs(ROOT);
     const offenders: { file: string; snippet: string }[] = [];
 
     const chainRegex = /\.from\(["']bookings["']\)([\s\S]{0,800}?)\.delete\(\)([\s\S]{0,800}?)(;|\n\s*\n)/g;

@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
   // stays in 'pending' status until the Stripe webhook confirms payment.
   // We still verify each row with Stripe before deletion in case a webhook
   // raced the cleanup — if we find a paid session we self-heal instead.
-  const stripeForCleanup = getStripe();
   const staleThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
   const { data: candidateRows } = await supabase
     .from("bookings")
@@ -138,10 +138,19 @@ export async function POST(request: NextRequest) {
 
   for (const row of candidateRows || []) {
     try {
-      const search = await stripeForCleanup.checkout.sessions.search({
-        query: `metadata['booking_id']:'${row.id}'`,
-        limit: 5,
-      });
+      // The Stripe Node SDK in this project doesn't expose `sessions.search`,
+      // so call the Search API directly. This is more efficient than listing
+      // every session in the account.
+      if (!stripeSecretKey) throw new Error("STRIPE_SECRET_KEY missing");
+      const query = `metadata['booking_id']:'${row.id}'`;
+      const res = await fetch(
+        `https://api.stripe.com/v1/checkout/sessions/search?query=${encodeURIComponent(query)}&limit=5`,
+        { headers: { Authorization: `Bearer ${stripeSecretKey}` } }
+      );
+      if (!res.ok) throw new Error(`Stripe search failed: ${res.status}`);
+      const search = (await res.json()) as {
+        data: Array<{ payment_status: string | null; payment_intent: string | { id: string } | null }>;
+      };
       const decision = decideCleanupAction(search.data);
       if (decision.action === "heal") {
         // Self-heal: webhook missed this one. Promote to confirmed and attach the payment intent.
