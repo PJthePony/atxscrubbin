@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "STRIPE_SECRET_KEY missing" }, { status: 500 });
   }
 
+  const startedAt = Date.now();
   const findings: Finding[] = [];
   const supabase = createServerClient();
   const now = Math.floor(Date.now() / 1000);
@@ -217,10 +218,20 @@ export async function GET(request: NextRequest) {
     await Promise.all(ALERT_EMAILS.map((addr) => sendEmail(addr, subject, html)));
   }
 
+  const criticalCount = findings.filter((f) => f.severity === "critical").length;
+
+  // Record the run so the admin panel can show a history independent of email.
+  await supabase.from("monitor_runs").insert({
+    findings_count: findings.length,
+    critical_count: criticalCount,
+    findings,
+    duration_ms: Date.now() - startedAt,
+  });
+
   return NextResponse.json({
     checked_at: new Date().toISOString(),
     findings_count: findings.length,
-    critical: findings.filter((f) => f.severity === "critical").length,
+    critical: criticalCount,
     findings: findings.map((f) => ({ severity: f.severity, title: f.title })),
   });
 }
