@@ -40,6 +40,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate contact fields before we touch the database or Stripe. An invalid
+  // email is what created the prior orphan booking: the row inserted fine, then
+  // Stripe rejected the address and threw, leaving a paymentless pending row.
+  const email = String(customer_email).trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json(
+      { error: "Please enter a valid email address." },
+      { status: 400 }
+    );
+  }
+  const phoneDigits = String(customer_phone).replace(/\D/g, "");
+  if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+    return NextResponse.json(
+      { error: "Please enter a valid phone number." },
+      { status: 400 }
+    );
+  }
+
   const supabase = createServerClient();
 
   // 1. Fetch all independent data in parallel
@@ -57,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Active team members
     supabase.from("team_members").select("id").eq("active", true),
     // Existing customer lookup
-    supabase.from("customers").select("id").eq("email", customer_email).limit(1).single(),
+    supabase.from("customers").select("id").eq("email", email).limit(1).single(),
   ]);
 
   const carSize = carSizeResult.data;
@@ -104,7 +122,7 @@ export async function POST(request: NextRequest) {
       .from("customers")
       .insert({
         full_name: customer_name,
-        email: customer_email,
+        email,
         phone: customer_phone,
         address,
         lat: lat || null,
@@ -310,21 +328,38 @@ export async function POST(request: NextRequest) {
   const stripe = getStripe();
   const origin = request.headers.get("origin") || "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    allow_promotion_codes: true,
-    customer_email: customer_email,
-    line_items: lineItems,
-    metadata: {
-      booking_id: booking.id,
-    },
-    payment_intent_data: {
-      receipt_email: undefined, // Suppress Stripe receipt — we send our own
-    },
-    success_url: `${origin}/book/success?booking_id=${booking.id}`,
-    cancel_url: `${origin}/book?cancelled=true`,
-  });
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      allow_promotion_codes: true,
+      customer_email: email,
+      line_items: lineItems,
+      metadata: {
+        booking_id: booking.id,
+      },
+      payment_intent_data: {
+        receipt_email: undefined, // Suppress Stripe receipt — we send our own
+      },
+      success_url: `${origin}/book/success?booking_id=${booking.id}`,
+      cancel_url: `${origin}/book?cancelled=true`,
+    });
+  } catch (err) {
+    // Roll back the pending booking we just created so a failed checkout never
+    // leaves a paymentless orphan row holding the slot. Scoped to this id and
+    // guarded by status=pending so we can't touch a confirmed booking.
+    console.error(`Stripe checkout creation failed for booking ${booking.id}:`, err);
+    await supabase
+      .from("bookings")
+      .delete()
+      .eq("id", booking.id)
+      .eq("status", "pending");
+    return NextResponse.json(
+      { error: "We couldn't start checkout. Please check your details and try again." },
+      { status: 502 }
+    );
+  }
 
   // Persist the session id so cleanup can later verify payment via a direct
   // retrieve (see the cleanup block above) instead of an unsupported search.
