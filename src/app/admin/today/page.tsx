@@ -31,16 +31,21 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   cancelled: { label: "Cancelled", color: "text-zinc-500", bg: "bg-zinc-700/50" },
 };
 
+const toDateStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 export default function TodayPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [checklists, setChecklists] = useState<Record<string, Record<string, boolean>>>({});
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateStr(new Date());
+  const [selectedDate, setSelectedDate] = useState(today);
+  const isToday = selectedDate === today;
 
   const loadBookings = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/bookings?date=${today}`);
+      const res = await fetch(`/api/admin/bookings?date=${selectedDate}`);
       const data = await res.json();
       setBookings(data.bookings || []);
     } catch {
@@ -48,14 +53,22 @@ export default function TodayPage() {
     } finally {
       setLoading(false);
     }
-  }, [today]);
+  }, [selectedDate]);
+
+  const shiftDate = (days: number) => {
+    const d = new Date(`${selectedDate}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    setLoading(true);
+    setSelectedDate(toDateStr(d));
+  };
 
   useEffect(() => {
     loadBookings();
-    // Refresh every 30 seconds
+    // Refresh every 30 seconds (only for today's live schedule)
+    if (!isToday) return;
     const interval = setInterval(loadBookings, 30000);
     return () => clearInterval(interval);
-  }, [loadBookings]);
+  }, [loadBookings, isToday]);
 
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/admin/bookings", {
@@ -78,19 +91,15 @@ export default function TodayPage() {
   const remaining = active.filter((b) => b.status !== "completed");
   const totalRevenue = active.reduce((sum, b) => sum + b.total, 0);
 
-  if (loading) {
-    return (
-      <div className="text-center py-12 text-zinc-500">Loading today&apos;s schedule...</div>
-    );
-  }
-
   return (
     <div>
       {/* Header with stats */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Today&apos;s Schedule</h1>
+        <h1 className="text-2xl font-bold mb-1">
+          {isToday ? "Today's Schedule" : "Schedule"}
+        </h1>
         <p className="text-sm text-zinc-400">
-          {new Date().toLocaleDateString("en-US", {
+          {new Date(`${selectedDate}T12:00:00`).toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
             day: "numeric",
@@ -98,6 +107,49 @@ export default function TodayPage() {
         </p>
       </div>
 
+      {/* Date navigation */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => shiftDate(-1)}
+          className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 text-zinc-300 hover:bg-zinc-800 transition"
+          aria-label="Previous day"
+        >
+          ‹
+        </button>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => {
+            if (!e.target.value) return;
+            setLoading(true);
+            setSelectedDate(e.target.value);
+          }}
+          className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-white [color-scheme:dark]"
+        />
+        <button
+          onClick={() => shiftDate(1)}
+          className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 text-zinc-300 hover:bg-zinc-800 transition"
+          aria-label="Next day"
+        >
+          ›
+        </button>
+        {!isToday && (
+          <button
+            onClick={() => {
+              setLoading(true);
+              setSelectedDate(today);
+            }}
+            className="rounded-lg bg-orange/20 border border-orange/40 px-3 py-2 text-sm font-semibold text-orange hover:bg-orange/30 transition"
+          >
+            Today
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-zinc-500">Loading schedule...</div>
+      ) : (
+        <>
       {/* Quick stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 text-center">
@@ -119,7 +171,11 @@ export default function TodayPage() {
       {active.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
           <div className="text-4xl mb-3">😎</div>
-          <p className="text-zinc-400">No washes today. Enjoy the day off!</p>
+          <p className="text-zinc-400">
+            {isToday
+              ? "No washes today. Enjoy the day off!"
+              : "No washes scheduled for this day."}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -289,6 +345,8 @@ export default function TodayPage() {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );
