@@ -2,58 +2,80 @@ import { describe, it, expect } from "vitest";
 import { decideCleanupAction, StripeSessionLike } from "./booking-cleanup";
 
 // These tests protect the invariant that "cleanup" NEVER deletes a booking
-// for which Stripe already has a paid Checkout session. The original bug
-// deleted paid bookings whenever the webhook hadn't fired yet.
+// for which Stripe has a paid Checkout session, and never deletes on missing
+// or ambiguous evidence. The original bug deleted paid bookings whenever the
+// webhook hadn't fired yet; the default must be KEEP.
 
 describe("decideCleanupAction", () => {
-  it("deletes when there are no Stripe sessions at all", () => {
-    expect(decideCleanupAction([])).toEqual({ action: "delete" });
+  it("KEEPS when there is no session at all (null)", () => {
+    expect(decideCleanupAction(null)).toEqual({ action: "keep" });
   });
 
-  it("deletes when sessions exist but none are paid", () => {
-    const sessions: StripeSessionLike[] = [
-      { payment_status: "unpaid", payment_intent: null },
-      { payment_status: "no_payment_required", payment_intent: null },
-    ];
-    expect(decideCleanupAction(sessions)).toEqual({ action: "delete" });
+  it("KEEPS when there is no session at all (undefined)", () => {
+    expect(decideCleanupAction(undefined)).toEqual({ action: "keep" });
   });
 
-  it("HEALS instead of deleting when a paid session exists (string payment_intent)", () => {
-    const sessions: StripeSessionLike[] = [
-      { payment_status: "paid", payment_intent: "pi_abc123" },
-    ];
-    expect(decideCleanupAction(sessions)).toEqual({
+  it("KEEPS an unpaid session that is still open (customer may yet pay)", () => {
+    const session: StripeSessionLike = {
+      status: "open",
+      payment_status: "unpaid",
+      payment_intent: null,
+    };
+    expect(decideCleanupAction(session)).toEqual({ action: "keep" });
+  });
+
+  it("DELETES an expired, unpaid session", () => {
+    const session: StripeSessionLike = {
+      status: "expired",
+      payment_status: "unpaid",
+      payment_intent: null,
+    };
+    expect(decideCleanupAction(session)).toEqual({ action: "delete" });
+  });
+
+  it("HEALS a paid session (string payment_intent)", () => {
+    const session: StripeSessionLike = {
+      status: "complete",
+      payment_status: "paid",
+      payment_intent: "pi_abc123",
+    };
+    expect(decideCleanupAction(session)).toEqual({
       action: "heal",
       paymentIntentId: "pi_abc123",
     });
   });
 
   it("HEALS when payment_intent is an expanded object", () => {
-    const sessions: StripeSessionLike[] = [
-      { payment_status: "paid", payment_intent: { id: "pi_expanded" } },
-    ];
-    expect(decideCleanupAction(sessions)).toEqual({
+    const session: StripeSessionLike = {
+      status: "complete",
+      payment_status: "paid",
+      payment_intent: { id: "pi_expanded" },
+    };
+    expect(decideCleanupAction(session)).toEqual({
       action: "heal",
       paymentIntentId: "pi_expanded",
     });
   });
 
-  it("HEALS when multiple sessions exist and at least one is paid", () => {
-    const sessions: StripeSessionLike[] = [
-      { payment_status: "unpaid", payment_intent: null },
-      { payment_status: "paid", payment_intent: "pi_winner" },
-      { payment_status: "expired", payment_intent: null },
-    ];
-    expect(decideCleanupAction(sessions)).toEqual({
+  it("HEALS a paid session even if Stripe still reports status=open", () => {
+    // Payment state is authoritative over lifecycle status; never delete a paid row.
+    const session: StripeSessionLike = {
+      status: "open",
+      payment_status: "paid",
+      payment_intent: "pi_race",
+    };
+    expect(decideCleanupAction(session)).toEqual({
       action: "heal",
-      paymentIntentId: "pi_winner",
+      paymentIntentId: "pi_race",
     });
   });
 
-  it("falls back to delete when paid session has no payment_intent (degenerate)", () => {
-    const sessions: StripeSessionLike[] = [
-      { payment_status: "paid", payment_intent: null },
-    ];
-    expect(decideCleanupAction(sessions)).toEqual({ action: "delete" });
+  it("KEEPS (does not delete) a paid session whose payment_intent isn't attached yet", () => {
+    const session: StripeSessionLike = {
+      status: "complete",
+      payment_status: "paid",
+      payment_intent: null,
+    };
+    expect(decideCleanupAction(session)).toEqual({ action: "keep" });
   });
 });

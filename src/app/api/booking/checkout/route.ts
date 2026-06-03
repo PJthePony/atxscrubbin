@@ -132,26 +132,38 @@ export async function POST(request: NextRequest) {
 
   const { data: candidateRows } = await supabase
     .from("bookings")
-    .select("id, created_at, customer_id")
+    .select("id, created_at, customer_id, stripe_checkout_session_id")
     .eq("status", "pending")
     .or(`customer_id.eq.${customerId},created_at.lt.${staleThreshold}`);
 
   for (const row of candidateRows || []) {
     try {
-      // The Stripe Node SDK in this project doesn't expose `sessions.search`,
-      // so call the Search API directly. This is more efficient than listing
-      // every session in the account.
       if (!stripeSecretKey) throw new Error("STRIPE_SECRET_KEY missing");
-      const query = `metadata['booking_id']:'${row.id}'`;
-      const res = await fetch(
-        `https://api.stripe.com/v1/checkout/sessions/search?query=${encodeURIComponent(query)}&limit=5`,
-        { headers: { Authorization: `Bearer ${stripeSecretKey}` } }
-      );
-      if (!res.ok) throw new Error(`Stripe search failed: ${res.status}`);
-      const search = (await res.json()) as {
-        data: Array<{ payment_status: string | null; payment_intent: string | { id: string } | null }>;
-      };
-      const decision = decideCleanupAction(search.data);
+
+      // Verify with a deterministic GET on the stored Checkout Session id.
+      // Stripe has no Search API for Checkout Sessions, and search elsewhere
+      // lags behind reality — a direct retrieve reflects the true, current
+      // payment state with no indexing delay. Legacy rows without a stored
+      // session id resolve to `null`, which decideCleanupAction treats as
+      // "keep" (never delete on absent evidence).
+      let session: {
+        status?: string | null;
+        payment_status: string | null;
+        payment_intent: string | { id: string } | null;
+      } | null = null;
+
+      if (row.stripe_checkout_session_id) {
+        const res = await fetch(
+          `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(
+            row.stripe_checkout_session_id
+          )}`,
+          { headers: { Authorization: `Bearer ${stripeSecretKey}` } }
+        );
+        if (!res.ok) throw new Error(`Stripe retrieve failed: ${res.status}`);
+        session = await res.json();
+      }
+
+      const decision = decideCleanupAction(session);
       if (decision.action === "heal") {
         // Self-heal: webhook missed this one. Promote to confirmed and attach the payment intent.
         await supabase
@@ -163,8 +175,16 @@ export async function POST(request: NextRequest) {
           .eq("id", row.id);
         continue;
       }
-      // decision.action === "delete" — truly abandoned. Guard with status=pending
-      // to ensure we never delete a confirmed/completed booking even in race conditions.
+
+      if (decision.action !== "delete") continue;
+
+      // Age floor (defense in depth): never delete a pending row younger than
+      // the stale threshold, even if it looks abandoned. A very recent row may
+      // be mid-payment in another tab; this backstop alone would have prevented
+      // the 2026-04 incident. The delete is also guarded by status=pending so a
+      // webhook that confirms the row mid-cleanup is never clobbered.
+      if (row.created_at >= staleThreshold) continue;
+
       await supabase
         .from("bookings")
         .delete()
@@ -305,6 +325,13 @@ export async function POST(request: NextRequest) {
     success_url: `${origin}/book/success?booking_id=${booking.id}`,
     cancel_url: `${origin}/book?cancelled=true`,
   });
+
+  // Persist the session id so cleanup can later verify payment via a direct
+  // retrieve (see the cleanup block above) instead of an unsupported search.
+  await supabase
+    .from("bookings")
+    .update({ stripe_checkout_session_id: session.id })
+    .eq("id", booking.id);
 
   return NextResponse.json({ url: session.url, booking_id: booking.id });
 }
