@@ -146,6 +146,33 @@ export async function getAvailableSlots(
 }
 
 /**
+ * Returns the IDs of all active team members who have marked themselves
+ * available for a given date (an availability_overrides row with
+ * available=true). Used to assign the working crew to a booking.
+ */
+export async function getAvailableTeamMemberIds(date: string): Promise<string[]> {
+  const supabase = createServerClient();
+
+  const { data: teamMembers } = await supabase
+    .from("team_members")
+    .select("id")
+    .eq("active", true);
+
+  if (!teamMembers || teamMembers.length === 0) return [];
+
+  const memberIds = teamMembers.map((m) => m.id);
+
+  const { data: availableRows } = await supabase
+    .from("availability_overrides")
+    .select("team_member_id")
+    .eq("date", date)
+    .eq("available", true)
+    .in("team_member_id", memberIds);
+
+  return (availableRows || []).map((r) => r.team_member_id);
+}
+
+/**
  * Lightweight check: is a specific slot available on a given date?
  * Uses pre-fetched bookings to avoid extra DB calls.
  */

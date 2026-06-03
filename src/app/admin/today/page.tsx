@@ -86,7 +86,9 @@ export default function TodayPage() {
     return `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
   };
 
-  const active = bookings.filter((b) => b.status !== "cancelled" && b.status !== "refunded");
+  const active = bookings
+    .filter((b) => b.status !== "cancelled" && b.status !== "refunded")
+    .sort((a, b) => a.scheduled_start.localeCompare(b.scheduled_start));
   const completed = active.filter((b) => b.status === "completed");
   const remaining = active.filter((b) => b.status !== "completed");
   const totalRevenue = active.reduce((sum, b) => sum + b.total, 0);

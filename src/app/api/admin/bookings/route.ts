@@ -4,6 +4,7 @@ import { withAdmin } from "@/lib/admin-guard";
 import { sendSMS, completionText } from "@/lib/twilio";
 import { sendEmail, bookingConfirmationEmail } from "@/lib/email";
 import { syncBookingEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import { getAvailableTeamMemberIds } from "@/lib/scheduling";
 
 export const dynamic = "force-dynamic";
 
@@ -336,27 +337,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Assign team members
-    const { data: settingsRows } = await supabase
-      .from("settings")
-      .select("key, value")
-      .eq("key", "min_team_members_per_booking");
+    // Assign the crew available that day
+    const availableMemberIds = await getAvailableTeamMemberIds(scheduled_date);
 
-    const minTeam = settingsRows?.[0]
-      ? parseInt(String(settingsRows[0].value), 10)
-      : 2;
-
-    const { data: activeMembers } = await supabase
-      .from("team_members")
-      .select("id")
-      .eq("active", true)
-      .limit(minTeam);
-
-    if (activeMembers && activeMembers.length > 0) {
+    if (availableMemberIds.length > 0) {
       await supabase.from("booking_team_members").insert(
-        activeMembers.map((m) => ({
+        availableMemberIds.map((id) => ({
           booking_id: booking.id,
-          team_member_id: m.id,
+          team_member_id: id,
         }))
       );
     }

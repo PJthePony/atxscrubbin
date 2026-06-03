@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
-import { isSlotAvailable } from "@/lib/scheduling";
+import { isSlotAvailable, getAvailableTeamMemberIds } from "@/lib/scheduling";
 import { decideCleanupAction } from "@/lib/booking-cleanup";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   // 1. Fetch all independent data in parallel
   const hasAddons = addon_ids && addon_ids.length > 0;
 
-  const [carSizeResult, addonResult, settingsResult, teamResult, customerResult] = await Promise.all([
+  const [carSizeResult, addonResult, settingsResult, customerResult] = await Promise.all([
     // Car size
     supabase.from("car_sizes").select("*").eq("id", car_size_id).single(),
     // Addons (if any)
@@ -72,8 +72,6 @@ export async function POST(request: NextRequest) {
       : Promise.resolve({ data: [] as { id: string; name: string; price: number; time_minutes: number }[], error: null }),
     // Settings
     supabase.from("settings").select("key, value"),
-    // Active team members
-    supabase.from("team_members").select("id").eq("active", true),
     // Existing customer lookup
     supabase.from("customers").select("id").eq("email", email).limit(1).single(),
   ]);
@@ -91,8 +89,6 @@ export async function POST(request: NextRequest) {
     settingsMap[row.key] = typeof row.value === "string" ? row.value : JSON.stringify(row.value);
   }
   const travelBuffer = parseInt(settingsMap.travel_buffer_minutes || "10", 10);
-  const minTeam = parseInt(settingsMap.min_team_members_per_booking || "2", 10);
-  const activeMembers = (teamResult.data || []).slice(0, minTeam);
 
   // 2. Calculate totals
   const addonTotal = addons.reduce((sum, a) => sum + Number(a.price), 0);
@@ -264,7 +260,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 8. Insert addons + assign team members in parallel
+  // 8. Insert addons + assign the crew available that day in parallel
+  const availableMemberIds = await getAvailableTeamMemberIds(scheduled_date);
+
   await Promise.all([
     addons.length > 0
       ? supabase.from("booking_addons").insert(
@@ -276,11 +274,11 @@ export async function POST(request: NextRequest) {
           }))
         )
       : Promise.resolve(),
-    activeMembers.length > 0
+    availableMemberIds.length > 0
       ? supabase.from("booking_team_members").insert(
-          activeMembers.map((m) => ({
+          availableMemberIds.map((id) => ({
             booking_id: booking.id,
-            team_member_id: m.id,
+            team_member_id: id,
           }))
         )
       : Promise.resolve(),
