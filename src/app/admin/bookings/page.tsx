@@ -13,6 +13,7 @@ interface BookingRow {
   subtotal: number;
   total: number;
   status: string;
+  deleted_at: string | null;
   stripe_payment_intent_id: string | null;
   stripe_refund_id: string | null;
   tip_amount: number;
@@ -91,6 +92,7 @@ export default function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [textingId, setTextingId] = useState<string | null>(null);
   const [textMessage, setTextMessage] = useState("");
@@ -110,6 +112,7 @@ export default function BookingsPage() {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (dateFilter) params.set("date", dateFilter);
+    if (showDeleted) params.set("deleted", "true");
 
     try {
       const res = await fetch(`/api/admin/bookings?${params}`);
@@ -120,7 +123,7 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, dateFilter]);
+  }, [statusFilter, dateFilter, showDeleted]);
 
   useEffect(() => {
     loadBookings();
@@ -242,7 +245,11 @@ export default function BookingsPage() {
   };
 
   const deleteBooking = async (id: string) => {
-    if (!confirm("Permanently delete this booking? This cannot be undone."))
+    if (
+      !confirm(
+        "Delete this booking? It will be moved to Deleted, where you can restore it later."
+      )
+    )
       return;
     const res = await fetch(`/api/admin/bookings?id=${id}`, {
       method: "DELETE",
@@ -250,6 +257,21 @@ export default function BookingsPage() {
     const data = await res.json();
     if (!res.ok) {
       alert(data.error || "Delete failed");
+      return;
+    }
+    setExpandedId(null);
+    loadBookings();
+  };
+
+  const restoreBooking = async (id: string) => {
+    const res = await fetch("/api/admin/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, deleted_at: null }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Restore failed");
       return;
     }
     setExpandedId(null);
@@ -405,6 +427,16 @@ export default function BookingsPage() {
               Clear
             </button>
           )}
+          <button
+            onClick={() => setShowDeleted((v) => !v)}
+            className={`rounded-lg border px-4 py-2.5 text-sm font-semibold min-h-[44px] transition ${
+              showDeleted
+                ? "border-orange-600 bg-orange-600/20 text-orange-300"
+                : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {showDeleted ? "Viewing Deleted" : "Show Deleted"}
+          </button>
         </div>
       </div>
 
@@ -829,7 +861,20 @@ export default function BookingsPage() {
                       )}
                     </div>
 
-                    {/* Status workflow */}
+                    {/* Status workflow — deleted bookings only offer restore */}
+                    {booking.deleted_at ? (
+                      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-zinc-800">
+                        <span className="text-sm text-red-400">
+                          Deleted {formatDate(booking.deleted_at.slice(0, 10))}
+                        </span>
+                        <button
+                          onClick={() => restoreBooking(booking.id)}
+                          className="ml-auto rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-500 active:scale-[0.98] transition"
+                        >
+                          Restore Booking
+                        </button>
+                      </div>
+                    ) : (
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800">
                       <span className="text-sm text-zinc-500 mr-1">
                         Status:
@@ -900,6 +945,7 @@ export default function BookingsPage() {
                         </button>
                       </div>
                     </div>
+                    )}
                   </div>
                 )}
               </div>

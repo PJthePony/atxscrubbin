@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     `
     )
     .eq("customer_id", customer.id)
+    .is("deleted_at", null)
     .order("scheduled_date", { ascending: false })
     .order("scheduled_start", { ascending: false });
 

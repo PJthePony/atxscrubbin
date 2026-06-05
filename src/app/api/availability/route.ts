@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     let bookingQuery = supabase
       .from("bookings")
       .select("scheduled_date")
+      .is("deleted_at", null)
       .not("status", "in", '("cancelled","refunded")');
 
     if (from) bookingQuery = bookingQuery.gte("scheduled_date", from);

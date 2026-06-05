@@ -92,6 +92,7 @@ export async function getAvailableSlots(
     .from("bookings")
     .select("scheduled_start, scheduled_end")
     .eq("scheduled_date", date)
+    .is("deleted_at", null)
     .not("status", "in", '("cancelled","refunded")');
 
   const bookings = (bookingRows as BookingRow[] | null) || [];

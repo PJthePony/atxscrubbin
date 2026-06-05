@@ -86,6 +86,7 @@ export interface Booking {
   reminder_day_before_sent: boolean;
   reminder_hour_before_sent: boolean;
   completion_notification_sent: boolean;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }

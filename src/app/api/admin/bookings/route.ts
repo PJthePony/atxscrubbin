@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get("date");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const deleted = searchParams.get("deleted") === "true";
 
     const supabase = createServerClient();
 
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
       )
       .order("scheduled_date", { ascending: false })
       .order("scheduled_start", { ascending: false });
+
+    // Show only deleted bookings in the trash view; otherwise hide them.
+    if (deleted) {
+      query = query.not("deleted_at", "is", null);
+    } else {
+      query = query.is("deleted_at", null);
+    }
 
     if (status) {
       query = query.eq("status", status);
@@ -79,6 +87,7 @@ export async function PATCH(request: NextRequest) {
       "scheduled_start",
       "scheduled_end",
       "address",
+      "deleted_at", // restore: set back to null
     ];
 
     const safeUpdates: Record<string, unknown> = {};
@@ -589,7 +598,8 @@ export async function PUT(request: NextRequest) {
   });
 }
 
-// DELETE — remove a booking and its related records
+// DELETE — soft-delete a booking so it can be restored later.
+// Related records (addons, crew) are preserved; only the calendar event is removed.
 export async function DELETE(request: NextRequest) {
   return withAdmin(async () => {
     const { searchParams } = new URL(request.url);
@@ -601,18 +611,20 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createServerClient();
 
-    // Fetch calendar event ID before deleting
+    // Fetch calendar event ID before removing it
     const { data: booking } = await supabase
       .from("bookings")
       .select("google_calendar_event_id")
       .eq("id", id)
       .single();
 
-    // Delete related records first
-    await supabase.from("booking_addons").delete().eq("booking_id", id);
-    await supabase.from("booking_team_members").delete().eq("booking_id", id);
-
-    const { error } = await supabase.from("bookings").delete().eq("id", id);
+    const { error } = await supabase
+      .from("bookings")
+      .update({
+        deleted_at: new Date().toISOString(),
+        google_calendar_event_id: null,
+      })
+      .eq("id", id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

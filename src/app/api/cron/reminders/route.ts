@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     .select("id, scheduled_start, address, customer:customers(full_name, phone, sms_opt_in, sms_confirmed)")
     .eq("scheduled_date", tomorrowStr)
     .eq("status", "confirmed")
+    .is("deleted_at", null)
     .eq("reminder_day_before_sent", false);
 
   for (const booking of dayBeforeBookings || []) {
@@ -80,6 +81,7 @@ export async function GET(request: NextRequest) {
     .select("id, scheduled_start, customer:customers(full_name, phone, sms_opt_in, sms_confirmed)")
     .eq("scheduled_date", today)
     .eq("status", "confirmed")
+    .is("deleted_at", null)
     .eq("reminder_hour_before_sent", false);
 
   for (const booking of hourBeforeBookings || []) {
@@ -123,6 +125,7 @@ export async function GET(request: NextRequest) {
     .select("id, scheduled_start, address, car_size:car_sizes(name), customer:customers(full_name, email)")
     .eq("scheduled_date", today)
     .eq("status", "confirmed")
+    .is("deleted_at", null)
     .eq("reminder_email_sent", false);
 
   for (const booking of todayEmailBookings || []) {

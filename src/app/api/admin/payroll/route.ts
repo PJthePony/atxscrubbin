@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       .gte("scheduled_date", weekStart)
       .lte("scheduled_date", weekEnd)
       .eq("status", "completed")
+      .is("deleted_at", null)
       .order("scheduled_date", { ascending: true })
       .order("scheduled_start", { ascending: true });
 
