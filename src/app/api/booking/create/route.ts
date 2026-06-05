@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     .from("bookings")
     .select("scheduled_start, scheduled_end")
     .eq("scheduled_date", scheduled_date)
+    .is("deleted_at", null)
     .not("status", "in", '("cancelled","refunded")');
 
   if (!isSlotAvailable(scheduled_start, totalDuration, travelBuffer, bookingRows || [])) {
